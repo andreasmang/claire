@@ -1323,7 +1323,7 @@ PetscErrorCode CLAIRE::ApplyInvHessian(Vec precx, Vec x, VecField* gradM, bool f
     } else {*/
     
     bool solve_h0 = true;
-    bool sym_h0 = false;
+    bool sym_h0 = true;
     
     kernel.beta = 1; //betav;
     
@@ -1950,15 +1950,69 @@ PetscErrorCode CLAIRE::SymTwoLevelHessMatVec(Vec Hvtilde, Vec vtilde) {
     // parse input (store incremental velocity field \tilde{v})
     ierr = AllocateOnce(this->m_CoarseReg->m_IncVelocityField, this->m_CoarseRegOpt); CHKERRQ(ierr);
     ierr = AllocateOnce(this->m_CoarseReg->m_WorkVecField5, this->m_CoarseRegOpt); CHKERRQ(ierr);
+
+    ScalarType beta;
+    beta = this->m_Opt->m_RegNorm.beta[0];
+    /*if (this->m_Opt->m_RegNorm.beta[3] > 0 && this->m_Opt->m_RegNorm.beta[3] > beta) {
+          beta = this->m_Opt->m_RegNorm.beta[3];
+    }*/
     
-    ScalarType beta = this->m_Opt->m_RegNorm.beta[0];
-    
-    //TwoLevelRegFFT op(this->m_Opt, beta);
-    TwoLevelFFT op(this->m_Opt);
+    TwoLevelRegFFT op(this->m_Opt, beta, 0, true);
+    //TwoLevelFinite op(this->m_Opt);
     
     op.Restrict(this->m_CoarseReg->m_WorkVecField5, v);
+
+    //this->m_CoarseRegOpt->m_RegNorm.beta[0] = beta;
+    //this->m_CoarseReg->m_Regularization->ApplyInverse(this->m_CoarseReg->m_WorkVecField5,this->m_CoarseReg->m_WorkVecField5, true);
     
-    this->m_CoarseReg->m_Regularization->ApplyInverse(this->m_CoarseReg->m_IncVelocityField, this->m_CoarseReg->m_WorkVecField5, true);
+    if (beta <= 0.1) {
+    
+    VecField p(this->m_CoarseRegOpt);
+    VecField r(this->m_CoarseRegOpt);
+    VecField x(this->m_CoarseRegOpt);
+    VecField m(this->m_CoarseRegOpt);
+    VecField *b = this->m_CoarseReg->m_WorkVecField5;
+    
+    x.SetValue(0);
+    
+    ScalarType rTr, pTAp, rel;
+    
+    r.Copy(b);
+    p.Copy(&r);
+    
+    VecDot(r.m_X, r.m_X, &rTr);
+        
+    rel=sqrt(rTr)*this->m_Opt->m_KrylovMethod.reltol*this->m_Opt->m_KrylovMethod.pctolint[0];
+    
+    this->m_CoarseRegOpt->m_KrylovMethod.matvectype = PRECONDMATVECSYM;
+    
+    for (int k=0;k<this->m_Opt->m_KrylovMethod.pcmaxit;++k) {
+      this->m_CoarseReg->HessianMatVec(m.m_X, p.m_X, false);
+      VecDot(p.m_X, m.m_X, &pTAp);
+      ScalarType cgalpha = rTr/pTAp;
+      x.AXPY(cgalpha, &p);
+      r.AXPY(-cgalpha, &m);
+      ScalarType rTr2;
+      VecDot(r.m_X, r.m_X, &rTr2);
+      if (sqrt(rTr2) < rel) {
+        rTr = rTr2;
+        break;
+      }
+      ScalarType cgbeta = rTr2/rTr;
+      p.Scale(cgbeta);
+      p.AXPY(1., &r);
+      rTr = rTr2;
+    }
+    
+    //this->m_CoarseReg->m_Regularization->ApplyInverse(&x,&x, true);
+    
+    op.Prolong(hv, &x);
+    } else {
+      op.Prolong(hv, this->m_CoarseReg->m_WorkVecField5);
+    }
+    this->m_Regularization->ApplyInverse(hv, hv, true);
+    
+   /* //this->m_CoarseReg->m_Regularization->ApplyInverse(this->m_CoarseReg->m_IncVelocityField, this->m_CoarseReg->m_WorkVecField5, true);
     
     this->m_CoarseReg->SolveIncStateEquation();
     this->m_CoarseReg->SolveIncAdjointEquation();
@@ -1972,6 +2026,7 @@ PetscErrorCode CLAIRE::SymTwoLevelHessMatVec(Vec Hvtilde, Vec vtilde) {
     ierr = this->m_CoarseReg->m_WorkVecField1->AXPY(hd, this->m_CoarseReg->m_WorkVecField5); CHKERRQ(ierr);
     
     op.Prolong(hv, this->m_CoarseReg->m_WorkVecField1);  
+    */
     
     ierr = Free(hv); CHKERRQ(ierr);
     ierr = Free(v); CHKERRQ(ierr);

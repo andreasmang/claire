@@ -79,6 +79,8 @@ class DifferentiationFD : public Differentiation {
   //size_t g_alloc_max;
   //int nlghost, isize_g[3], istart_g[3];
   ScalarType* m_Ghost, *d_Ghost;//, *m_Work;
+  IntType isizeg[3];
+  IntType halo[3];
 
   GhostPlan* m_GhostPlan;
 

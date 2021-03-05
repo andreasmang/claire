@@ -714,7 +714,7 @@ PetscErrorCode Optimizer::Finalize() {
         }
         ss << std::left << std::setw(indent)
            << "newton iterations" << std::right << std::setw(numindent)
-           << this->m_Opt->GetCounter(ITERATIONS) - 1;
+           << this->m_Opt->GetCounter(ITERATIONS);
         ierr = DbgMsg1(ss.str()); CHKERRQ(ierr);
         ss.str(std::string()); ss.clear();
 
@@ -740,7 +740,7 @@ PetscErrorCode Optimizer::Finalize() {
           outputcsvfile << "jacobian min," << std::scientific << this->m_Opt->m_Monitor.detdgradmin << std::endl;
           outputcsvfile << "jacobian max," << this->m_Opt->m_Monitor.detdgradmax << std::endl;
           outputcsvfile << "relative mismatch," << this->m_Opt->m_Monitor.dval/this->m_Opt->m_Monitor.dval0 << std::endl;
-          outputcsvfile << "NITER," << this->m_Opt->GetCounter(ITERATIONS) - 1 << std::endl;
+          outputcsvfile << "NITER," << this->m_Opt->GetCounter(ITERATIONS) << std::endl;
           outputcsvfile << "OBJEVAL," << this->m_Opt->GetCounter(OBJEVAL) << std::endl;
           outputcsvfile << "HESSMATVEC," << this->m_Opt->GetCounter(HESSMATVEC) << std::endl;
           outputcsvfile << "PDESOLVE," << this->m_Opt->GetCounter(PDESOLVE) << std::endl;

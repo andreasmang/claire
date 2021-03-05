@@ -811,6 +811,9 @@ PetscErrorCode RegOpt::SetParameter(const std::vector<std::string>& args) {
             } else if (strcmp(argv[1], "symh0mg") == 0) {
                 this->m_KrylovMethod.pctype = NOPC;
                 this->m_KrylovMethod.matvectype = H0MATVEC;
+            } else if (strcmp(argv[1], "nopc") == 0) {
+                this->m_KrylovMethod.pctype = NOPC;
+                this->m_KrylovMethod.matvectype = DEFAULTMATVEC;
             } else {
                 msg = "\n\x1b[31m preconditioner not defined: %s\x1b[0m\n";
                 ierr = PetscPrintf(PETSC_COMM_WORLD, msg.c_str(), argv[1]); CHKERRQ(ierr);

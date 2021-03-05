@@ -87,6 +87,8 @@ class OptimizationProblem {
     
     /*! apply inverse H(v=0) */
     virtual PetscErrorCode ApplyInvHessian(Vec, Vec, VecField*, bool first=false, bool twolevel=false, Preprocessing *preproc=nullptr) = 0;
+    
+    virtual PetscErrorCode SymTwoLevelHessMatVec(Vec, Vec) = 0;
 
     /*! solve forward problem */
     virtual PetscErrorCode SolveForwardProblem(Vec, Vec) = 0;

@@ -105,20 +105,23 @@ PetscErrorCode DifferentiationFD::SetupData(ScalarType *x1, ScalarType *x2, Scal
     }*/
     
     const IntType nghost = 4;
-    const IntType halo[3] = {nghost, 0, 0};
+    halo[0] = nghost; halo[1] = 0; halo[2] = 0;
 
 #if defined(REG_HAS_CUDA) || defined(REG_HAS_MPICUDA)
     if (this->m_Opt->rank_cnt == 1) {
+      isizeg[0] = this->m_Opt->m_Domain.isize[0];
+      isizeg[1] = this->m_Opt->m_Domain.isize[1];
+      isizeg[2] = this->m_Opt->m_Domain.isize[2];
       this->mtex = gpuInitEmptyGradientTexture(this->m_Opt->m_Domain.nx);
-      ierr = initConstants(this->m_Opt->m_Domain.isize, 
+      /*ierr = initConstants(this->m_Opt->m_Domain.isize, 
                            this->m_Opt->m_Domain.isize,
                            this->m_Opt->m_Domain.hx,
-                           halo); CHKERRQ(ierr);
+                           halo); CHKERRQ(ierr);*/
     } else {
       ierr = AllocateOnce(this->m_GhostPlan, this->m_Opt, nghost); CHKERRQ(ierr);
-      IntType isize_g[3], istart_g[3];
+      IntType istart_g[3];
       //size_t nlghost;
-      size_t g_alloc_max = this->m_GhostPlan->get_ghost_local_size_x(isize_g, istart_g);
+      size_t g_alloc_max = this->m_GhostPlan->get_ghost_local_size_x(isizeg, istart_g);
       //nlghost = isize_g[0]*isize_g[1]*isize_g[2];
 
       // ghost data mem alloc on CPU
@@ -129,11 +132,11 @@ PetscErrorCode DifferentiationFD::SetupData(ScalarType *x1, ScalarType *x2, Scal
       // ghost data mem alloc on GPU
       //cudaMalloc((void**)&this->d_Ghost, this->nlghost*sizeof(ScalarType));
       
-      this->mtex = gpuInitEmptyGradientTexture(isize_g); CHKERRQ(ierr);
-      ierr = initConstants(this->m_Opt->m_Domain.isize,
+      this->mtex = gpuInitEmptyGradientTexture(isizeg); CHKERRQ(ierr);
+      /*ierr = initConstants(this->m_Opt->m_Domain.isize,
                            isize_g,
                            this->m_Opt->m_Domain.hx,
-                           halo); CHKERRQ(ierr);
+                           halo); CHKERRQ(ierr);*/
     }
 #else
     ierr = DebugNotImplemented(); CHKERRQ(ierr);
@@ -213,9 +216,9 @@ PetscErrorCode DifferentiationFD::Gradient(ScalarType *g1,
       ZeitGeist_tick(FD_COMM);
       this->m_GhostPlan->share_ghost_x(m, this->m_Ghost); 
       ZeitGeist_tock(FD_COMM);
-      ierr = computeGradient(g1, g2, g3, this->m_Ghost, this->mtex, this->m_Opt->m_Domain.isize, this->m_Opt->m_Domain.hx, true); CHKERRQ(ierr);
+      ierr = computeGradient(g1, g2, g3, this->m_Ghost, this->mtex, this->m_Opt->m_Domain.isize, isizeg, halo, this->m_Opt->m_Domain.hx, true); CHKERRQ(ierr);
     } else {
-      ierr = computeGradient(g1, g2, g3, m, this->mtex, this->m_Opt->m_Domain.isize, this->m_Opt->m_Domain.hx); CHKERRQ(ierr);
+      ierr = computeGradient(g1, g2, g3, m, this->mtex, this->m_Opt->m_Domain.isize, isizeg, halo, this->m_Opt->m_Domain.hx); CHKERRQ(ierr);
     }
 #else
     ierr = DebugNotImplemented(); CHKERRQ(ierr);
@@ -250,9 +253,9 @@ PetscErrorCode DifferentiationFD::Laplacian(ScalarType *l,
       ZeitGeist_tick(FD_COMM);
       this->m_GhostPlan->share_ghost_x(m, this->m_Ghost);
       ZeitGeist_tock(FD_COMM);
-      ierr = computeLaplacian(l, this->m_Ghost, this->mtex, this->m_Opt->m_Domain.isize, 1., true); CHKERRQ(ierr);
+      ierr = computeLaplacian(l, this->m_Ghost, this->mtex, this->m_Opt->m_Domain.isize, isizeg, halo, this->m_Opt->m_Domain.hx, 1., true); CHKERRQ(ierr);
     } else {
-      ierr = computeLaplacian(l, m, this->mtex, this->m_Opt->m_Domain.isize, 1.); CHKERRQ(ierr);
+      ierr = computeLaplacian(l, m, this->mtex, this->m_Opt->m_Domain.isize, isizeg, halo, this->m_Opt->m_Domain.hx, 1.); CHKERRQ(ierr);
     }
 #else
     ierr = DebugNotImplemented(); CHKERRQ(ierr);
@@ -300,7 +303,7 @@ PetscErrorCode DifferentiationFD::Laplacian(ScalarType *l1,
         //ierr = computeLaplacian(pl[i], this->d_Ghost, this->mtex, this->m_Opt->m_Domain.isize, 1., true); CHKERRQ(ierr);
         ierr = DebugNotImplemented(); CHKERRQ(ierr);
       } else {
-        ierr = computeLaplacian(pl[i], pv[i], this->mtex, this->m_Opt->m_Domain.isize, 1.); CHKERRQ(ierr);
+        ierr = computeLaplacian(pl[i], pv[i], this->mtex, this->m_Opt->m_Domain.isize,  isizeg, halo, this->m_Opt->m_Domain.hx, 1.); CHKERRQ(ierr);
       }
 #else
       ierr = DebugNotImplemented(); CHKERRQ(ierr);
@@ -339,7 +342,7 @@ PetscErrorCode DifferentiationFD::Divergence(ScalarType *l,
       ZeitGeist_tick(FD_COMM);
       this->m_GhostPlan->share_ghost_x(v3, this->m_Ghost); 
       ZeitGeist_tock(FD_COMM);
-      ierr = computeDivergenceZ(l, this->m_Ghost, this->m_Opt->m_Domain.isize, this->m_Opt->m_Domain.hx, true); CHKERRQ(ierr);
+      ierr = computeDivergenceZ(l, this->m_Ghost, this->m_Opt->m_Domain.isize, isizeg, halo, this->m_Opt->m_Domain.hx, true); CHKERRQ(ierr);
     
       //ierr = cudaMemcpy((void*)this->m_Work, (const void*)v2, sizeof(ScalarType)*this->m_Opt->m_Domain.nl, cudaMemcpyDeviceToHost); CHKERRCUDA(ierr);
       //share_ghost_layer(this->m_Opt, this->nghost, this->isize_g, this->m_Work, this->m_Ghost, this->m_GhostWork1, this->m_GhostWork2); 
@@ -348,7 +351,7 @@ PetscErrorCode DifferentiationFD::Divergence(ScalarType *l,
       ZeitGeist_tick(FD_COMM);
       this->m_GhostPlan->share_ghost_x(v2, this->m_Ghost); 
       ZeitGeist_tock(FD_COMM);
-      ierr = computeDivergenceY(l, this->m_Ghost, this->m_Opt->m_Domain.isize, this->m_Opt->m_Domain.hx, true); CHKERRQ(ierr);
+      ierr = computeDivergenceY(l, this->m_Ghost, this->m_Opt->m_Domain.isize, isizeg, halo, this->m_Opt->m_Domain.hx, true); CHKERRQ(ierr);
       
       //ierr = cudaMemcpy((void*)this->m_Work, (const void*)v1, sizeof(ScalarType)*this->m_Opt->m_Domain.nl, cudaMemcpyDeviceToHost); CHKERRCUDA(ierr);
       //share_ghost_layer(this->m_Opt, this->nghost, this->isize_g, this->m_Work, this->m_Ghost, this->m_GhostWork1, this->m_GhostWork2); 
@@ -357,9 +360,9 @@ PetscErrorCode DifferentiationFD::Divergence(ScalarType *l,
       ZeitGeist_tick(FD_COMM);
       this->m_GhostPlan->share_ghost_x(v1, this->m_Ghost); 
       ZeitGeist_tock(FD_COMM);
-      ierr = computeDivergenceX(l, this->m_Ghost, this->m_Opt->m_Domain.isize, this->m_Opt->m_Domain.hx, true); CHKERRQ(ierr);
+      ierr = computeDivergenceX(l, this->m_Ghost, this->m_Opt->m_Domain.isize, isizeg, halo, this->m_Opt->m_Domain.hx, true); CHKERRQ(ierr);
     } else {
-      ierr = computeDivergence(l, v1, v2, v3, this->mtex, this->m_Opt->m_Domain.isize, this->m_Opt->m_Domain.hx); CHKERRQ(ierr);
+      ierr = computeDivergence(l, v1, v2, v3, this->mtex, this->m_Opt->m_Domain.isize, isizeg, halo, this->m_Opt->m_Domain.hx); CHKERRQ(ierr);
     }
 #else
     ierr = DebugNotImplemented(); CHKERRQ(ierr);
@@ -403,7 +406,7 @@ PetscErrorCode DifferentiationFD::RegLapOp(VecField* bv, VecField* v, ScalarType
       }
     } else {
       for (int i=0; i<3; i++) {
-        ierr = computeLaplacian(pBV[i], pV[i], this->mtex, this->m_Opt->m_Domain.isize, -b0); CHKERRQ(ierr);
+        ierr = computeLaplacian(pBV[i], pV[i], this->mtex, this->m_Opt->m_Domain.isize, isizeg, halo, this->m_Opt->m_Domain.hx, -b0); CHKERRQ(ierr);
       }
     }
 #else
@@ -472,7 +475,7 @@ PetscErrorCode DifferentiationFD::InvRegLapOp(VecField* bv, VecField* v, bool us
       }
     } else {
       for (int i=0; i<3; i++) {
-        ierr = computeLaplacian(pBV[i], pV[i], this->mtex, this->m_Opt->m_Domain.isize, b0); CHKERRQ(ierr);
+        ierr = computeLaplacian(pBV[i], pV[i], this->mtex, this->m_Opt->m_Domain.isize,  isizeg, halo, this->m_Opt->m_Domain.hx, b0); CHKERRQ(ierr);
       }
     }
 #else

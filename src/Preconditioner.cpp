@@ -630,6 +630,7 @@ PetscErrorCode Preconditioner::ApplySpectralPrecond(Vec precx, Vec x) {
     ZeitGeist_define(PC_INVREG);
     ZeitGeist_tick(PC_INVREG);
     ierr = this->m_OptimizationProblem->ApplyInvRegularizationOperator(precx, x, false); CHKERRQ(ierr);
+    //ierr = this->m_OptimizationProblem->SymTwoLevelHessMatVec(precx, x); CHKERRQ(ierr);
     ZeitGeist_tock(PC_INVREG);
 
     // stop timer

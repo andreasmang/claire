@@ -1032,7 +1032,7 @@ PetscErrorCode CLAIREBase::SetupTransportProblem() {
     ierr = this->m_TransportProblem->SetWorkScaField(this->m_WorkScaField3, 3); CHKERRQ(ierr);
     //ierr = this->m_TransportProblem->SetWorkScaField(this->m_WorkScaField4, 4); CHKERRQ(ierr);
     //ierr = this->m_TransportProblem->SetWorkScaField(this->m_WorkScaField5, 5); CHKERRQ(ierr);
-    
+  
     switch (this->m_Opt->m_Diff.diffPDE) {
         case SPECTRAL:
           ierr = AllocateOnce<DifferentiationSM>(this->m_Differentiation, this->m_Opt); CHKERRQ(ierr);
@@ -1210,7 +1210,8 @@ PetscErrorCode CLAIREBase::PreKrylovSolve(Vec g, Vec x) {
         // apply square root of inverse regularization operator
         ierr = this->ApplyInvRegularizationOperator(g, g, true); CHKERRQ(ierr);
     }
-    
+
+#if 1
     if (this->m_CoarseReg) {
       
       //AllocateOnce(this->m_CoarseReg->m_TemplateImage, this->m_CoarseRegOpt);
@@ -1297,6 +1298,8 @@ PetscErrorCode CLAIREBase::PreKrylovSolve(Vec g, Vec x) {
       //this->m_CoarseReg->m_SemiLagrangianMethod->ComputeTrajectory(this->m_CoarseReg->m_VelocityField, "state"); CHKERRQ(ierr);    
       //this->m_CoarseReg->m_SemiLagrangianMethod->ComputeTrajectory(this->m_CoarseReg->m_VelocityField, "adjoint"); CHKERRQ(ierr);
       
+      //////////////////////
+      /*
       VecField *g_vec = new VecField(m_Opt, g);
       
       
@@ -1305,9 +1308,10 @@ PetscErrorCode CLAIREBase::PreKrylovSolve(Vec g, Vec x) {
       //TwoLevelFFT op(this->m_Opt);
       op.Restrict(this->m_WorkVecField1, g_vec);
       op.Prolong(g_vec, this->m_WorkVecField1);
-      
       delete g_vec;
+      */
     }
+#endif
     
     /*{
       VecField *g_vec = new VecField(m_Opt, g);
@@ -1336,11 +1340,81 @@ PetscErrorCode CLAIREBase::PostKrylovSolve(Vec g, Vec x) {
     PetscFunctionBegin;
 
     this->m_Opt->Enter(__func__);
-
+    
+    //AllocateOnce(this->m_WorkVecField5, this->m_Opt);
+    //ApplyInvHessian(x, g, m_WorkVecField5, true, false);
+    //ScalarType hd;
+    //hd = this->m_Opt->GetLebesgueMeasure();
+    //VecScale(g, 1./hd);
+    //SymTwoLevelHessMatVec(x, g);
+    //ierr = VecScale(x, hd); CHKERRQ(ierr);
+        
+    /*{
+    ScalarType rTr, pTAp, rel, rel_f;
+    
+    VecDot(g, g, &rTr);
+    
+    rel_f = sqrt(rTr);
+    
+    //if (this->m_Opt->m_KrylovMethod.matvectype == PRECONDMATVEC) {
+    //    // apply inverse regularization operator
+    //    ierr = this->ApplyInvRegularizationOperator(g, g, false); CHKERRQ(ierr);
+    //} else if (this->m_Opt->m_KrylovMethod.matvectype == PRECONDMATVECSYM) {
+    //    // apply square root of inverse regularization operator
+    //    ierr = this->ApplyInvRegularizationOperator(g, g, true); CHKERRQ(ierr);
+    //}
+    
+    //VecField b_f(this->m_Opt, g);
+    //VecField x_f(this->m_Opt, x);
+    
+    ScalarType beta = this->m_Opt->m_RegNorm.beta[0];
+    
+    VecField r(this->m_Opt);
+    VecField p(this->m_Opt);
+    VecField xk(this->m_Opt, x);
+    VecField b(this->m_Opt, g);
+    VecField m(this->m_Opt);
+    
+    //TwoLevelRegFFT op(this->m_Opt, beta, 0, true);
+    //op.Restrict(&b, &b_f);
+        
+    r.Copy(&b);
+    xk.SetValue(0);
+    p.Copy(&r);
+    
+    //VecDot(r.m_X, r.m_X, &rTr);
+    
+    printf("%f %f %f ", this->m_Opt->m_KrylovMethod.reltol, rel_f, sqrt(rTr));
+    
+    rel=sqrt(rTr)*this->m_Opt->m_KrylovMethod.reltol;
+    
+    for (int k=0;k<50;++k) {
+      this->HessianMatVec(m.m_X, p.m_X);
+      VecDot(p.m_X, m.m_X, &pTAp);
+      ScalarType alpha = rTr/pTAp;
+      xk.AXPY(alpha, &p);
+      r.AXPY(-alpha, &m);
+      ScalarType rTr2;
+      VecDot(r.m_X, r.m_X, &rTr2);
+      if (sqrt(rTr2) < rel) {
+        rTr = rTr2;
+        printf("%i ", k);
+        break;
+      }
+      ScalarType beta = rTr2/rTr;
+      p.Scale(beta);
+      p.AXPY(1., &r);
+      rTr = rTr2;
+    }
+    
+    printf("%f\n", sqrt(rTr));
+    
+    //op.Prolong(&x_f, &xk);
+    }*/
+    
     if (this->m_Opt->m_KrylovMethod.matvectype == PRECONDMATVECSYM) {
         ierr = this->ApplyInvRegularizationOperator(x, x, true); CHKERRQ(ierr);
     }
-    
     
     /*VecField *g_vec = new VecField(m_Opt, x);
     
@@ -1397,6 +1471,7 @@ PetscErrorCode CLAIREBase::ApplyInvRegularizationOperator(Vec ainvx, Vec x, bool
     fprintf(handle, "%i,%i,%e", nit, kit, sqrt(norm_pre));*/
     
     ierr = this->m_Regularization->ApplyInverse(vinv, v, flag); CHKERRQ(ierr);
+    //ierr = this->SymTwoLevelHessMatVec(ainvx, x); CHKERRQ(ierr);
         
     /*vinv->Norm2(norm_post);
    
