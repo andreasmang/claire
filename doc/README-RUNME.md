@@ -27,8 +27,7 @@ CLAIRE has two binaries: `claire` and `clairetools`.
 
 We provide **several examples** for executing these binaries in the [doc/examples](https://github.com/andreasmang/claire/tree/gpu/examples) subfolder. We briefly explain these examples below.
 
-These binaries can be found in the `bin` folder after CLAIRE has been built successfully. To learn more about building claire take a look at our [quick installation guide](README-INSTALL-QUICK.md) ([doc/README-INSTALL-QUICK.md](README-INSTALL-QUICK.md)) or our [detailed installation guide](README-INSTALL.md) [doc/README-INSTALL.md](README-INSTALL.md).
-
+These binaries can be found in the `bin` folder after CLAIRE has been built successfully. To learn more about building claire take a look at our [installation guide](README-INSTALL.md) found in [doc/README-INSTALL.md](README-INSTALL.md).
 
 
 ## Get Help <a name="clairehelp"></a>
