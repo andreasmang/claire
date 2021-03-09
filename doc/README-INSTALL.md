@@ -71,7 +71,7 @@ If you would like to verify if CLAIRE has been installed correctly run the follo
 ./bin/claire -synthetic 0
 ```
 
-Additional examples for executing CLAIRE are described in [README-RUNME.md](doc/README-RUNME.md)
+Additional examples for executing CLAIRE are described in [doc/README-RUNME.md](README-RUNME.md)
 
 
 ## Detailed Installation Guide <a name="verboseinstall"></a>
@@ -206,7 +206,7 @@ If you would like to verify if CLAIRE has been installed correctly run the follo
 ./bin/claire -synthetic 0
 ```
 
-Additional examples for executing CLAIRE are described in [README-RUNME.md](doc/README-RUNME.md)
+Additional examples for executing CLAIRE are described in [doc/README-RUNME.md](README-RUNME.md)
 
 
 ## Additional Info for Dependencies <a name="depsinf"></a>
