@@ -164,11 +164,17 @@ The `test` application allows users to check the main computational kernels:
 
 These tests are implemented in the `*.cpp` files in the [UnitTests](https://github.com/andreasmang/claire/tree/gpu/src/UnitTests) subfolder.
 
-We have also implemented several high-level numerical checks to assess the performance of our methodology and ensure that the mathematical operators are correct. These tests are directly available within the `claire` binary:
+We have also implemented several high-level numerical checks to assess the performance of our methodology and ensure that the mathematical operators are correct. 
+
+The `benchmark` binary allows users to (i) check the accuracy of the forward operator and (ii) report the runtime for evaluating several key mathematical operators. Use the `-help` flag to see all options. The main tests are the following:
+* check error of forward operator (solve the forward problem for $v$ and $-v$ and check error with respect to initial condition for $t=0$)
+* report runtimes for evaluating the forward operator, the gradient operator and the Hessian matvec.
+
+The tests/debug options directly available within the `claire` binary are the following (Use the `-help` flag to see all options.):
 * The default test in CLAIRE is to consider synthetic test problems. The user can select between several test problems of varying complexity by setting the flag `-synthetic i`, where `i` selects the particular test case (valid values for `i` are `0`, `1`, ..., `5`).
 * The user can control the verbosity level of `claire` by using the `-verbose 2` flag (debug mode verbosity). This will, e.g., enable command window outputs such as the residual in each iteration of the Krylov subspace method used to compute the search direction (and much more).
 * The Newton--Krylov solver monitors several critical values during the course of the iterations. The user can see outputs such as
-	* number of (Gauss--)Newton iterations. 
+	* number of (Gauss--)Newton iterations.
 	* trend of the objective value (has to decrease monotonically)
 	* trend of the gradient norm (should decrease but not necessarily monotonically)
 	* number of line search steps (should be 1 for a Newton method subject to accuracy requirements)
