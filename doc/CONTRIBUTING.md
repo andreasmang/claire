@@ -40,4 +40,4 @@ To contribute to the software:
 
 ## Coding Conventions <a name="conventions"></a>
 
-Our source code follows the [Google C++ Style Guide](https://google.github.io/styleguide/cppguide.html). Please adhere to these coding conventions if you would like to contribute to CLAIRE.
+Our source code follows the [Google C++ Style Guide](https://google.github.io/styleguide/cppguide.html). Please adhere to these coding conventions if you would like to contribute to CLAIRE. Notice that all our routines use the error mechanism implemented in PETSc. We strongly encourage all contributers to include this mechanism to make debugging easier.
