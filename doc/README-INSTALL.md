@@ -5,6 +5,8 @@ Go back to [README.md](../README.md).
 ## Content
 
 * [Installation Overview](#installation)
+	* [One Shot](#oneshot)
+	* [Step by Step](#stepbystep)
 * [Detailed Installation Guide](#verboseinstall)
 	* [Requirements](#requirements)
 	* [Dependencies](#dependencies)
@@ -12,20 +14,16 @@ Go back to [README.md](../README.md).
 		* Step 1: Downloading and Installing Dependencies
 		* Step 2: Setting Environment Variables
 	* [Building CLAIRE](#buildclaire)
+	* [Executing CLAIRE](#execclaire)
 * [Additional Info for Dependencies](#depsinf)
 * [Troubleshooting and Known Issues](#faq)
 
 
-
-# CLAIRE: Quick Installation Guide<a name="installation"></a>
+## Installation Overview (Quick Guide)<a name="installation"></a>
 
 Here, we only provide a minimal installation guide. We provide a make environment to download and install the dependencies using generic settings that have worked on our systems. If this brief installation guide does not work for you, please consult the [detailed installation guide](#verbosiinstall) below.
 
-## Contents
-1. [One Shot](#oneshot)
-2. [Step by Step](#stepbystep)
-
-## One Shot <a name="oneshot"></a>
+### One Shot <a name="oneshot"></a>
 
 ```bash
 cd deps
@@ -38,9 +36,9 @@ make -j
 
 The enviroment variable needs to be sourced every time you log out of your computer or start a new bash. As an alternative, you can add the content of `env_source.sh` to your `.bashrc` or `bash_profile`.
 
-## Step by Step  <a name="stepbystep"></a>
+### Step by Step  <a name="stepbystep"></a>
 
-### Step 1) Installing Dependencies
+#### Step 1) Installing Dependencies
 
 To install the dependencies go to the top level directory of CLAIRE in your command window and execute the following commands within your command window:
 
@@ -57,7 +55,7 @@ source env_source.sh
 
 The enviroment variable needs to be sourced every time you log out of your computer or start a new bash. As an alternative, you can add the content of `env_source.sh` to your `.bashrc` or `bash_profile`.
 
-### Step 2) Compiling CLAIRE
+#### Step 2) Compiling CLAIRE
 
 Assuming that your in the top level directory of CLAIRE, all you need to do is to type
 
@@ -65,7 +63,7 @@ Assuming that your in the top level directory of CLAIRE, all you need to do is t
 make -j
 ```
 
-### Step 3) Executing CLAIRE
+#### Step 3) Executing CLAIRE
 
 If you would like to verify if CLAIRE has been installed correctly run the following command in your command window:
 
@@ -198,6 +196,15 @@ The makefile has some optional parameters to configure the build. The parameters
 | VVERBOSE       | if set to any value the make command is very verbose  |         |               |
 
 Not that the makefile generates a cache (`make.cache`) to detect if a complete rebuild of CLAIRE is needed. If this file is removed or not exsiting the next build will first do `make clean` automatically.
+
+
+## Executing CLAIRE <a name="execclaire"></a>
+
+If you would like to verify if CLAIRE has been installed correctly run the following command in your command window:
+
+```bash
+./bin/claire -synthetic 0
+```
 
 Additional examples for executing CLAIRE are described in [doc/README-RUNME.md](doc/README-RUNME.md)
 
