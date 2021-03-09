@@ -172,15 +172,25 @@ The tests implemented in `benchmark` are described in the [numerics](#numerics) 
 
 We have implemented several high-level numerical checks to assess the performance of our methodology and ensure that the mathematical operators are correct.
 
+
+#### Numerical Checks in `claire`
+
+We have implemented several features to help with debugging the core components called within the `claire` binary.
+
 * The default tests in CLAIRE are based on synthetic test problems. The user can select between several test problems of varying complexity by setting the flag `synthetic i`, where `i` selects the particular test case (valid values for `i` are `0`, `1`, ..., `5`).
 
-* The user can control the verbosity level of `claire` by setting `-verbose 2` (debug mode).
+* The user can control the verbosity level of `claire` by setting `-verbose 2` (debug mode). This will, e.g., enable command window outputs such as the residual in each iteration of the Krylov subspace method in the Newton--Krylov solver (and much more).
 
 * Among many metrics, we report values of the objective function per iteration. CLAIRE is globalized using an Armijo line search. That is, the objective functional needs to decrease from one Newton iteration to another. As a rule of thumb (subject to numerical accuracy), if one observes line search steps (i.e., the search direction is not accepted immediatly in the line search), there is typically a bug.
 
 * The accuracy of the symmetry of the discretized Hessian operator can be monitored by enabling the `-checksymmetry` flag in `claire`. Notice that we consider an optimize-then-discretize approach; we expect this error to be large for our current implementation.
 
 * The approximation accuracy of the gradient and Hessian can be monitored by enabling the `-derivativecheck` flag in `claire`. We report the assymptotic behavior of the Taylor expansion.
+
+
+#### The `benchmark`
+
+The `benchmark` binary includes various numerical tests to check the implementations of the PDE operators that appear in the optimality systems.
 
 
 ### NIREP Data <a name="nirep"></a>
