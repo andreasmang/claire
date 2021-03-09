@@ -179,5 +179,5 @@ The tests/debug options directly available within the `claire` binary are the fo
 	* trend of the gradient norm (should decrease but not necessarily monotonically)
 	* number of line search steps (should be 1 for a Newton method subject to accuracy requirements)
 	* and much more...
-* The accuracy of the symmetry of the discretized Hessian operator can be monitored by enabling the `-checksymmetry` flag in `claire`. Notice that we consider an optimize-then-discretize approach and numerical schemes that do not preserve symmetry; numerically, the Hessian is only symmetric up to numerical accuracy.
+* The accuracy of the symmetry of the discretized Hessian operator can be monitored by enabling the `-checksymmetry` flag in `claire`. Notice that we consider an optimize-then-discretize approach and numerical schemes that do not preserve symmetry; consequently, in our current implementation, the Hessian is only symmetric up to numerical accuracy.
 * The approximation accuracy of the gradient and Hessian can be monitored by enabling the `-derivativecheck` flag in `claire`. We report the assymptotic behavior of the Taylor expansion. The same comment as in the former test applies.
