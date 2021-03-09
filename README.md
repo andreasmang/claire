@@ -34,8 +34,9 @@ George Biros, Malte Brunn, Amir Gholami, James Herring, Naveen Himthani, [Andrea
 
 If you want to contribute to CLAIRE, read the guidlines (see [doc/CONTRIBUTING.md](doc/CONTRIBUTING.md)). 
 
+## Code of Conduct
+See [doc/CODE_OF_CONDUCT.md](doc/CODE_OF_CONDUCT.md).
+
 ## License
 Read the [LICENSE](https://github.com/andreasmang/claire/tree/master/LICENSE) file for more details.
 
-## Code of Conduct
-See [doc/CODE_OF_CONDUCT.md](doc/CODE_OF_CONDUCT.md).
