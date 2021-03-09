@@ -1,4 +1,4 @@
-#LAIRE: The Binaries
+# CLAIRE: The Binaries
 
 Go back to [README.md](../README.md).
 
@@ -20,12 +20,14 @@ Go back to [README.md](../README.md).
 
 ## Overview <a name="clairebins"></a>
 
-CLAIRE has two binaries: `claire` and `clairetools`.
+CLAIRE has two main binaries: `claire` and `clairetools`.
 
   * `claire`: perform registrations
   * `clairetools`: post and pre-processing
 
 We provide **several examples** for executing these binaries in the [doc/examples](https://github.com/andreasmang/claire/tree/gpu/examples) subfolder. We briefly explain these examples below.
+
+In addition to that we have added two binaries named `test` and `benchmark` for developers to test the code. They are described in greater detail in the [Testing and Benchmarks](#testing) section below.
 
 These binaries can be found in the `bin` folder after CLAIRE has been built successfully. To learn more about building claire take a look at our [installation guide](README-INSTALL.md) found in [doc/README-INSTALL.md](README-INSTALL.md).
 
