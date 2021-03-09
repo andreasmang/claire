@@ -125,11 +125,11 @@ PetscErrorCode RunForwardSolverBenchmark(reg::BenchmarkOpt *opt) {
 
     // make sure we do not store time history
     opt->m_RegFlags.runinversion = false;
-  
+
 
     ierr = ComputeSyntheticData(m, opt); CHKERRQ(ierr);
     ierr = ComputeSyntheticData(v, opt); CHKERRQ(ierr);
-    
+
     try {registration = new reg::CLAIRE(opt);}
     catch (std::bad_alloc& err) {
         ierr = reg::ThrowError(err); CHKERRQ(ierr);
@@ -140,7 +140,7 @@ PetscErrorCode RunForwardSolverBenchmark(reg::BenchmarkOpt *opt) {
 
     DBGCHK();
 
-    
+
     ierr = reg::DbgMsg("run forward solver benchmarck"); CHKERRQ(ierr);
 
     // warm start
@@ -351,7 +351,7 @@ PetscErrorCode ComputeErrorForwardSolver(reg::BenchmarkOpt *opt) {
     ierr = VecAXPY(m0, -1.0, m0true); CHKERRQ(ierr);
     ierr = VecNorm(m0, NORM_2, &val); CHKERRQ(ierr);
     ierr = VecNorm(m0true, NORM_2, &val0); CHKERRQ(ierr);
-    
+
     /*
     ierr = readwrite->Write(m0, "m0.nc"); CHKERRQ(ierr);
     ierr = readwrite->Write(m1, "m1.nc"); CHKERRQ(ierr);
