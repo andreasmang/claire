@@ -71,7 +71,7 @@ If you would like to verify if CLAIRE has been installed correctly run the follo
 ./bin/claire -synthetic 0
 ```
 
-Additional examples for executing CLAIRE are described in [doc/README-RUNME.md](doc/README-RUNME.md)
+Additional examples for executing CLAIRE are described in [README-RUNME.md](doc/README-RUNME.md)
 
 
 ## Detailed Installation Guide <a name="verboseinstall"></a>
@@ -138,7 +138,7 @@ The makefile has some optional parameters to configure the build. The parameters
 
 The libraries will be extraxted and build in the `deps/lib` subfolder.
 
-### Step 2: Setting Environment Variables
+#### Step 2: Setting Environment Variables
 Before you are able to compile and run CLAIRE you need to add *environment variables* to your system. When building the libraries a file called `env_source.sh` is created. This file should be located in the [debs](../deps) subfolder. To add the environment variables temporarily (for the current session) to your system, do
 
 ```bash
@@ -206,7 +206,7 @@ If you would like to verify if CLAIRE has been installed correctly run the follo
 ./bin/claire -synthetic 0
 ```
 
-Additional examples for executing CLAIRE are described in [doc/README-RUNME.md](doc/README-RUNME.md)
+Additional examples for executing CLAIRE are described in [README-RUNME.md](doc/README-RUNME.md)
 
 
 ## Additional Info for Dependencies <a name="depsinf"></a>
