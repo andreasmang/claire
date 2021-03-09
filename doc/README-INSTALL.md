@@ -1,22 +1,84 @@
 # CLAIRE: Detailed Installation Guide
 
+Go back to [README.md](../README.md).
 
 ## Content
 
-* [Requirements](#requirements)
-* [Dependencies](#dependencies)
-	* Required Dependencies
-  * Step 1: Downloading Dependencies
-  * Step 2: Installing Dependencies
-  	* Quick Shot
-  	* Detailed Instructions
-  * Step 3: Setting Environment Variables
-* [Building CLAIRE](#buildclaire)
+* [Installation Overview](#installation)
+* [Detailed Installation Guide](#verboseinstall)
+	* [Requirements](#requirements)
+	* [Dependencies](#dependencies)
+		* Required Dependencies and Compatibility
+		* Step 1: Downloading and Installing Dependencies
+		* Step 2: Setting Environment Variables
+	* [Building CLAIRE](#buildclaire)
 * [Additional Info for Dependencies](#depsinf)
-* [Troubleshooting](#faq)
+* [Troubleshooting and Known Issues](#faq)
 
 
-## Requirements <a name="requirements"></a>
+
+# CLAIRE: Quick Installation Guide<a name="installation"></a>
+
+Here, we only provide a minimal installation guide. We provide a make environment to download and install the dependencies using generic settings that have worked on our systems. If this brief installation guide does not work for you, please consult the [detailed installation guide](#verbosiinstall) below.
+
+## Contents
+1. [One Shot](#oneshot)
+2. [Step by Step](#stepbystep)
+
+## One Shot <a name="oneshot"></a>
+
+```bash
+cd deps
+make
+source env_source.sh
+cd ..
+make -j
+./bin/claire -synthetic 0
+```
+
+The enviroment variable needs to be sourced every time you log out of your computer or start a new bash. As an alternative, you can add the content of `env_source.sh` to your `.bashrc` or `bash_profile`.
+
+## Step by Step  <a name="stepbystep"></a>
+
+### Step 1) Installing Dependencies
+
+To install the dependencies go to the top level directory of CLAIRE in your command window and execute the following commands within your command window:
+
+```bash
+cd deps
+make
+```
+
+This makefile downloads and compiles the dependencies for CLAIRE. To add these dependencies to your environment type the following into your command line and press return:
+
+```bash
+source env_source.sh
+```
+
+The enviroment variable needs to be sourced every time you log out of your computer or start a new bash. As an alternative, you can add the content of `env_source.sh` to your `.bashrc` or `bash_profile`.
+
+### Step 2) Compiling CLAIRE
+
+Assuming that your in the top level directory of CLAIRE, all you need to do is to type
+
+```bash
+make -j
+```
+
+### Step 3) Executing CLAIRE
+
+If you would like to verify if CLAIRE has been installed correctly run the following command in your command window:
+
+```bash
+./bin/claire -synthetic 0
+```
+
+Additional examples for executing CLAIRE are described in [doc/README-RUNME.md](doc/README-RUNME.md)
+
+
+## Detailed Installation Guide <a name="verboseinstall"></a>
+
+### Requirements <a name="requirements"></a>
 
 * MPI (Open MPI; MVAPICH; Intel MPI); required by `PETSc`, and `CLAIRE`
 * cmake ([https://cmake.org](https://cmake.org)); required by `niftilib`
@@ -24,19 +86,35 @@
 * zlib ([https://www.zlib.net/](https://www.zlib.net/)); requiered by `niftilib`
 * CUDA-API
 
-
 Make sure that the standard *wrappers* for `mpicc`, `mpicxx`, and `nvcc` are available on your system (either by loading the appropriate modules and/or by setting up the appropriate `PATH` and `LD_LIBRARY_PATH` definitions below). The compilation has been tested with `Open MPI`, `MVAPICH`, and `Intel MPI`.
 
-## Dependencies <a name="dependencies"></a>
 
-### Required Dependencies
-CLAIRE-GPU requires the following libraries to be installed on your system:
 
+### Dependencies <a name="dependencies"></a>
+
+
+#### Required Dependencies and Compatibility
+
+The compiler needs `C++11` support. CLAIRE-GPU requires the following libraries to be installed on your system:
+
+* MPI (with GPU support (CUDA-aware MPI) for multi-GPU multi-node)
 * `PETSc` with CUDA support [https://www.mcs.anl.gov/petsc/](https://www.mcs.anl.gov/petsc/)
 * `niftilib` [https://sourceforge.net/projects/niftilib/files/nifticlib/](https://sourceforge.net/projects/niftilib/files/nifticlib/)
 * `zlib` [http://zlib.net](http://zlib.net)
 
-### Step 1: Downloading and Installing Dependencies
+
+|Test   | Compiler  | MPI            | CUDA | PETSc  | CPU    | GPU   | System       |
+|---    |---------- |-----           |------|------- |---     |---    |---           |
+|b5213fa| GCC 9.3   | OpenMPI 4.0.3  | 11.0 | 3.14.2 | x86_64 | GA102 | Ubuntu 20.04 |
+|6f40316| GCC 9.3   | OpenMPI 4.0.3  | 11.1 | 3.14.2 | x86_64 | GK110 | Ubuntu 20.04 |
+|4967052| GCC 8.4   | OpenMPI 1.10.2 | 10.1 | 3.12.4 | x86_64 | GK110 | Ubuntu 16.04 |
+|4967052| GCC 5.4.0 | OpenMPI 1.10.2 | 10.0 | 3.12.4 | x86_64 | GM200 | Ubuntu 16.04 |
+|4967052| GCC 7.4   | OpenMPI 4.0.1  | 10.1 | 3.12.4 | x86_64 | GP100 | Ubuntu 16.04 |
+|4967052| GCC 4.8.5 | OpenMPI 3.1.6  | 10.2 | 3.12.4 | Power9 | GV100 | CentOS 7.8   |
+|4967052| XLC 16.1  | Spectrum 10.3  | 10.2 | 3.12.4 | Power9 | GV100 | RHEL 7.8     |
+
+
+#### Step 1: Downloading and Installing Dependencies
 
 To download and compile the libraries we provide a makefile (see [deps/makefile](../deps/makefile)). Simply run `make` with this script in your command window to download *tarball* files of the libraries identified above.
 
@@ -71,7 +149,8 @@ source env_source.sh
 
 To add them permanently, copy the content of `env_source.sh` to your `~/.bashrc`. Notice that `env_source.sh` defines *absolute paths*.
 
-## Building CLAIRE for CPU <a name="buildclaire"></a>
+
+## Building CLAIRE <a name="buildclaire"></a>
 
 Before you can build CLAIRE you need to
 
@@ -120,6 +199,8 @@ The makefile has some optional parameters to configure the build. The parameters
 
 Not that the makefile generates a cache (`make.cache`) to detect if a complete rebuild of CLAIRE is needed. If this file is removed or not exsiting the next build will first do `make clean` automatically.
 
+Additional examples for executing CLAIRE are described in [doc/README-RUNME.md](doc/README-RUNME.md)
+
 
 ## Additional Info for Dependencies <a name="depsinf"></a>
 
@@ -138,36 +219,11 @@ Not that the makefile generates a cache (`make.cache`) to detect if a complete r
 * see [NIFTICLIB](https://sourceforge.net/projects/niftilib/files/nifticlib/)
 
 
-## Troubleshooting <a name="faq"></a>
+## Troubleshooting / Known Issues <a name="faq"></a>
 
-1. `libstdc++` or `GLIBCXX...` not found
-	* required by *ACCFFT* and *niftilib*
-	* `libstdc++` is the *GNU Standard C++ library*
-	* you might be able to locate this library via `locate libstdc`
-	* **fix**: if `gcc` is on your system, you need to add it to the `LD_LIBRARY_PATH`; add `export LD_LIBRARY_PATH=/path/to/gcc/lib(64):$LD_LIBRARY_PATH` to your `bashrc`
-2. PETSc requires at least *python 2.7(.11)* for compilation; *python 3* is not supported in PETSc 3.7
-3. when compiling PETSc: ERROR:root:code for hash md5 was not found...
-	* this is a problem with your python 2.7 installation
-	* **fix** upgrade to python 2.7.11
-4. g++: error: unrecognized command line option -parallel
-	* you probably set `USEINTEL` in the [makefile](../makefile) to `yes`, but are not using an intel compiler
-	* **fix**: `USEINTEL=no`
-5. ./include/RegOpt.hpp: fatal error: petsc.h: No such file or directory
-	* you probably forgot to set the environment variables
-	* **fix**: `source external/libs/environment_vars.sh`
-6. definition in ...libmpi_mt.so section .tbss mismatches non-TLS definition in ...libmpi.so.4 section .bss
-	* you have used inconsistent MPI libraries during the build (thread safe vs. non-thread safe)
-	* **fix**:
-		* set `USEINTELMPI` in the [makefile](../makefile) to `yes`
-		* when building the libraries add `--useimpi`: `./build_libs.sh --build --useimpi`
-7. libmpi.so: could not read symbols: Bad value (see 6.)
-8. libimf.so: warning: warning: feupdateenv is not implemented and will always fail
-	* you probably use an intel compiler but did not set `USEINTEL` to `yes`
-	* **fix**: set `USEINTEL` in the [makefile](../makefile) to `yes`
-8. Other dependencies that may cause problems (should in general be available on your system)
-	* cmake (https://cmake.org; required by ACCFFT and niftilib; version 2.8 or greater)
-	* openMP (required by ACCFFT)
-	* `crypt` library (required by PETSc)
-	* `ssl` library (required by PETSc)
-	* BLAS (required by PETSc; we install it along with PETSc; http://www.netlib.org/blas/)
-	* LAPACK (required by PETSc; we install it along with PETSc; http://www.netlib.org/lapack/)
+* if MPI is not compiled with CUDA-aware options, add the file `.petscrc` to the working directory and add the option `-use_gpu_aware_mpi 0`
+* CUDA >= 11.0 is only supported with PETSc >= 3.14.
+* Kepler GPUs work with PETSc 3.12.4  (others not tested)
+* Compiling PETSc with CUDA support on cluster login nodes without GPUs might fail
+* PNETCDF is currently not tested for GPUs
+
