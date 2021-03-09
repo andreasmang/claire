@@ -21,7 +21,7 @@ Go back to [README.md](../README.md).
 
 ## Installation Overview (Quick Guide)<a name="installation"></a>
 
-Here, we only provide a minimal installation guide. We provide a make environment to download and install the dependencies using generic settings that have worked on our systems. If this brief installation guide does not work for you, please consult the [detailed installation guide](#verbosiinstall) below.
+Here, we only provide a minimal installation guide. We provide a make environment to download and install the dependencies using generic settings that have worked on our systems. If this brief installation guide does not work for you, please consult the [detailed installation guide](#verboseinstall) below.
 
 ### One Shot <a name="oneshot"></a>
 
