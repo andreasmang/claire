@@ -1,4 +1,4 @@
-# CLAIRE: The Binaries
+#LAIRE: The Binaries
 
 Go back to [README.md](../README.md).
 
@@ -15,7 +15,10 @@ Go back to [README.md](../README.md).
 * [Simple Examples: `clairetools`](#toolsxmp)
   * [Transporting Images](#toolsxmp1)
   * [Computing Jacobians](#toolsxmp2)
-* [NIREP Data](#nirep)
+* [Testing](#testing)
+	* [Unit Tests](#unittest)
+	* [Numerics](#numerics)
+	* [NIREP Data](#nirep)
 
 
 ## Overview <a name="clairebins"></a>
@@ -150,6 +153,32 @@ mpirun -np 20 $bindir/clairetools -v1 velocity-field-x1.nii.gz       \
 ```
 
 
+
+## Testing <a name="testing"></a>
+
+We have implemented [unit tests](#unittests) for the main computational kernels available in CLAIRE, tests to study the performance and accuracy of the mathematical operators (see [numerics](#numerics)), and provide a repo for the test data we have considered in our most recent publications [nirep](#nirep).
+
+
+### Unit Tests <a name="unittests"></a>
+
+To build binaries for testing set `BUILD_TEST=yes` in the makefile. This will build two binaries: `benchmark` (for numerical tests) and `test` for unit tests. Considering the unit tests implemented in the `test` binary, we provide methods to assess the main computational kernels implemented in CLAIRE, namely:
+* the interpolation kernels (`-interp` flag) 
+* the regularization operators (e.g., biharmonic operators; `-reg` flag)
+* numerical differentiation (`-diff`)
+
+The tests implemented in `benchmark` are described in the [numerics](#numerics) section below.
+
+### Numerics <a name="numerics"></a>
+
+* The user can control the verbosity level of `claire` by setting `-verbose 2` (debug mode).
+
+* Among many metrics, we report values of the objective function per iteration. CLAIRE is globalized using an Armijo line search. That is, the objective functional needs to decrease from one Newton iteration to another. As a rule of thumb (subject to numerical accuracy), if one observes line search steps (i.e., the search direction is not accepted immediatly in the line search), there is typically a bug.
+
+* The accuracy of the symmetry of the discretized Hessian operator can be monitored by enabling the `-checksymmetry` flag in `claire`. Notice that we consider an optimize-then-discretize approach; we expect this error to be large for our current implementation.
+
+* The approximation accuracy of the gradient and Hessian can be monitored by enabling the `-derivativecheck` flag in `claire`. We report the assymptotic behavior of the Taylor expansion.
+
+
 ### NIREP Data <a name="nirep"></a>
 
-For reproducabiltiy we have added the NIREP data to one of our repositories. You can find it here: [nirep data](https://github.com/andreasmang/nirep).
+For reproducabiltiy we have added the NIREP data to one of our repositories. You can find it here: [nirep data](https://github.com/andreasmang/nirep). This data has been used in all our most recent publications to test the performance of CLAIRE. See [doc/README-REFERENCES.md](README-REFRENCES.md) for details.
