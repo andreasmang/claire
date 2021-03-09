@@ -170,6 +170,10 @@ The tests implemented in `benchmark` are described in the [numerics](#numerics) 
 
 ### Numerics <a name="numerics"></a>
 
+We have implemented several high-level numerical checks to assess the performance of our methodology and ensure that the mathematical operators are correct.
+
+* The default tests in CLAIRE are based on synthetic test problems. The user can select between several test problems of varying complexity by setting the flag `synthetic i`, where `i` selects the particular test case (valid values for `i` are `0`, `1`, ..., `5`).
+
 * The user can control the verbosity level of `claire` by setting `-verbose 2` (debug mode).
 
 * Among many metrics, we report values of the objective function per iteration. CLAIRE is globalized using an Armijo line search. That is, the objective functional needs to decrease from one Newton iteration to another. As a rule of thumb (subject to numerical accuracy), if one observes line search steps (i.e., the search direction is not accepted immediatly in the line search), there is typically a bug.
