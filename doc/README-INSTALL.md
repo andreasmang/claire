@@ -1,4 +1,4 @@
-# CLAIRE: Detailed Installation Guide
+# CLAIRE: Installation and Requirements
 
 Go back to [README.md](../README.md).
 
