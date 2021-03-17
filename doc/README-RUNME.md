@@ -57,17 +57,17 @@ CLAIRE is a software for 3D diffeomorphic image registration. Supported input fo
 
 In [runclaire01.sh](https://github.com/andreasmang/claire/tree/gpu/doc/examples/runclaire01.sh) we execute CLAIRE for a synthetic test problem of size 32x32x32. We use default settings for our solver:
 ```bash
-$bindir/claire -synthetic 0
+$BINDIR/claire -synthetic 0
 ```
 
-`$bindir` is the directory in which the binary is located. The flag `-synthetic` allows one to select several smooth test problems. To change the problem size simply add the `-nx <n1xn2xn3>` flag, where `<n$i$>` represents the problem size in each spatial direction (i.e., `-nx 128x128x128` executes CLAIRE with a problem size of `128x128x128`.) We recommend executing CLAIRE in parallel for larger problem sizes (see [example 2](#clairexmp2))
+`$BINDIR` is the directory in which the binary is located. The flag `-synthetic` allows one to select several smooth test problems. To change the problem size simply add the `-nx <n1xn2xn3>` flag, where `<n$i$>` represents the problem size in each spatial direction (i.e., `-nx 128x128x128` executes CLAIRE with a problem size of `128x128x128`.) We recommend executing CLAIRE in parallel for larger problem sizes (see [example 2](#clairexmp2))
 
 ### Example 02: Synthetic Problem (Parallel Execution) <a name="clairexmp2"></a>
 
 In [runclaire02.sh](examples/runclaire02.sh) we execute CLAIRE for a synthetic test problem of size 128x128x128 in parallel. We use 20 MPI tasks. We use default settings for our solver:
 
 ```bash
-mpirun -np 20 $bindir/claire -synthetic 0 -nx 128
+mpirun -np 20 $BINDIR/claire -synthetic 0 -nx 128
 ```
 
 The options used with `claire` are explained in [example 1](#clairexmp1). The key difference is the instruction `mpirun -np 20` infront of the executable. This instructs your compute node to use 20 MPI tasks. CLAIRE will determine the processor layout for you. We recommend executing CLAIRE in parallel. If you use `mpiexec` replace `mpirun -np 20` with `mpiexec -n 20`.
@@ -78,7 +78,7 @@ The options used with `claire` are explained in [example 1](#clairexmp1). The ke
 In [runclaire03.sh](https://github.com/andreasmang/claire/tree/gpu/doc/examples/runclaire03.sh) we execute CLAIRE for real medical images (in NIfTI format) of size 128x150x128. We use 20 MPI tasks. The data can be found in the [docs/data](data) subdirectory. We use default settings for our solver:
 
 ```bash
-mpirun -np 20 $bindir/claire -mr $datdir/brain01.nii.gz \
+mpirun -np 20 $BINDIR/claire -mr $datdir/brain01.nii.gz \
                              -mt $datdir/brain02.nii.gz
 ```
 
@@ -92,7 +92,7 @@ mpirun -np 20 $bindir/claire -mr $datdir/brain01.nii.gz \
 In [runclaire04.sh](https://github.com/andreasmang/claire/tree/gpu/doc/examples/runclaire04.sh) we execute CLAIRE to automatically identify an adequate regularization parameter for a given set of images. We use default settings for our solver:
 
 ```bash
-mpirun -np 20 $bindir/claire -mr $datdir/brain01.nii.gz \
+mpirun -np 20 $BINDIR/claire -mr $datdir/brain01.nii.gz \
                              -mt $datdir/brain02.nii.gz -train binary
 ```
 
@@ -104,7 +104,7 @@ Running `claire` on real image data is explained in [example 3](#clairexmp3). We
 In [runclaire05.sh](https://github.com/andreasmang/claire/tree/gpu/doc/examples/runclaire05.sh) we show how to execute CLAIRE using a parameter continuation scheme with a target regularization parameter for the velocity. We use default settings for our solver:
 
 ```bash
-mpirun -np 20 $bindir/claire -mr $datdir/brain01.nii.gz \
+mpirun -np 20 $BINDIR/claire -mr $datdir/brain01.nii.gz \
                              -mt $datdir/brain02.nii.gz \
                              -betacont 7.75e-04
 ```
@@ -117,7 +117,7 @@ We have observed that a parameter continuation scheme speeds up the rate of conv
 In [runclaire06.sh](https://github.com/andreasmang/claire/tree/gpu/doc/examples/runclaire06.sh) we show how to store the computed velocity field on file. We use default settings for our solver:
 
 ```bash
-mpirun -np 20 $bindir/claire -mr $datdir/brain01.nii.gz \
+mpirun -np 20 $BINDIR/claire -mr $datdir/brain01.nii.gz \
                              -mt $datdir/brain02.nii.gz \
                              -betacont 7.75e-04  -x ./ -velocity
 ```
@@ -137,7 +137,7 @@ The `-velocity` option tells CLAIRE to write out the velocity field. There are m
 In [runtools01.sh](https://github.com/andreasmang/claire/tree/gpu/doc/examples/runtools01.sh) we show how to transport an image (i.e., e.g., compute the deformed template image after a velocity has been computed using `claire`.)
 
 ```bash
-mpirun -np 20 $bindir/clairetools -v1 velocity-field-x1.nii.gz       \
+mpirun -np 20 $BINDIR/clairetools -v1 velocity-field-x1.nii.gz       \
                                   -v2 velocity-field-x2.nii.gz       \
                                   -v3 velocity-field-x3.nii.gz       \
                                   -ifile $datdir/brain01.nii.gz      \
@@ -152,7 +152,7 @@ The input are the three components of the computed velocity (`-v$i$ velocity-fie
 In [runtools02.sh](https://github.com/andreasmang/claire/tree/gpu/doc/examples/runtools02.sh) we show how to compute the determinant of the deformation gradient (alas Jacobian) from a velocity field that has been computed using `claire`.
 
 ```bash
-mpirun -np 20 $bindir/clairetools -v1 velocity-field-x1.nii.gz       \
+mpirun -np 20 $BINDIR/clairetools -v1 velocity-field-x1.nii.gz       \
                                   -v2 velocity-field-x2.nii.gz       \
                                   -v3 velocity-field-x3.nii.gz       \
                                   -x ./ -detdefgrad
@@ -177,18 +177,27 @@ The `benchmark` binary allows users to (i) check the accuracy of the forward ope
 * check error of forward operator (solve the forward problem for $v$ and $-v$ and check error with respect to initial condition for $t=0$)
 * report runtimes for evaluating the forward operator, the gradient operator and the Hessian matvec.
 
-The **tests/debug options** directly available within the `claire` binary are the following (Use the `-help` flag to see all options.):
+The **tests/debug options** directly available within the `claire` binary are the following (Use the `-help` flag to see all options. Notice that the help provides a `other parameters/debugging` section that describes the options mentioned below):
 * The default test in CLAIRE is to consider synthetic test problems. The user can select between several test problems of varying complexity by setting the flag `-synthetic i`, where `i` selects the particular test case (valid values for `i` are `0`, `1`, ..., `5`).
+```bash
+$BINDIR/claire [other args] -synthetic 0 
+```
+
 * The user can control the verbosity level of `claire` by using the `-verbose 2` flag (debug mode verbosity). This will, e.g., enable command window outputs such as the residual in each iteration of the Krylov subspace method used to compute the search direction (and much more).
+```bash
+$BINDIR/claire [other args] -verbose 2
+```
 * The Newton--Krylov solver monitors several critical values during the course of the iterations. The user can see outputs such as
 	* number of (Gauss--)Newton iterations.
 	* trend of the objective value (has to decrease monotonically)
 	* trend of the gradient norm (should decrease but not necessarily monotonically)
 	* number of line search steps (should be 1 for a Newton method subject to accuracy requirements)
 	* and much more...
-* The accuracy of the symmetry of the discretized Hessian operator can be monitored by enabling the `-checksymmetry` flag in `claire`:
+* The accuracy of the symmetry of the discretized Hessian operator can be monitored by enabling the `-checksymmetry` flag in `claire`: Notice that we consider an optimize-then-discretize approach and numerical schemes that do not preserve symmetry; consequently, in our current implementation, the Hessian is only symmetric up to the discretization error of the adjoint operators (~1e-2).
 ```bash
-./bin/claire [args] -checksymmetry
+$BINDIR/claire [other args] -checksymmetry
 ```
-Notice that we consider an optimize-then-discretize approach and numerical schemes that do not preserve symmetry; consequently, in our current implementation, the Hessian is only symmetric up to the discretization error of the adjoint operators (~1e-2).
 * The approximation accuracy of the gradient and Hessian can be monitored by enabling the `-derivativecheck` flag in `claire`. We report the assymptotic behavior of the Taylor expansion. The approximation error should decrease with decreasing perburbation (i.e., the error should converge). However, we do, in general not expect to observe quadratic or cubic convergence (as we would if we considered a discretize-then-optimize approach).
+```bash
+./bin/claire [other args] -derivativecheck
+```
