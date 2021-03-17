@@ -16,6 +16,7 @@ Go back to [README.md](../README.md).
 	* [Building CLAIRE](#buildclaire)
 	* [Executing CLAIRE](#execclaire)
 * [Additional Info for Dependencies](#depsinf)
+* [CLAIRE on Specific Systems](#clairesys)
 * [Troubleshooting and Known Issues](#faq)
 
 
@@ -224,18 +225,40 @@ Additional examples for executing CLAIRE are described in [doc/README-RUNME.md](
 ## Additional Info for Dependencies <a name="depsinf"></a>
 
 ### PETSc
-
-* file: [petsc-lite-3.12.4.tar.gz](http://ftp.mcs.anl.gov/pub/petsc/release-snapshots/petsc-lite-3.12.4.tar.gz)
-* source code also available on bitbucket: [https://bitbucket.org/petsc/petsc](https://bitbucket.org/petsc/petsc)
+* PETSc webpage: [https://www.mcs.anl.gov/petsc](https://www.mcs.anl.gov/petsc)
 * description: library for numerics, linear algebra, and optimization
-* older versions that have been succesfully used by our group:
+* source code also available on bitbucket: [https://bitbucket.org/petsc/petsc](https://bitbucket.org/petsc/petsc)
+* versions that have been succesfully used by our group:
 	* [petsc-lite-3.11.4.tar.gz](http://ftp.mcs.anl.gov/pub/petsc/release-snapshots/petsc-lite-3.11.4.tar.gz)
 
 ### nifticlib
-
-* file: [nifticlib-2.0.0.tar.gz](https://sourceforge.net/projects/niftilib/files/nifticlib/nifticlib_2_0_0)
+* NIFTICLIB webpage: [http://niftilib.sourceforge.net](http://niftilib.sourceforge.net)
 * description: library to read and write NIFTI images
-* see [NIFTICLIB](https://sourceforge.net/projects/niftilib/files/nifticlib/)
+* see [https://sourceforge.net/projects/niftilib/files/nifticlib](https://sourceforge.net/projects/niftilib/files/nifticlib)
+* versions that have been succesfully used by our group:
+	* [nifticlib-2.0.0.tar.gz](https://sourceforge.net/projects/niftilib/files/nifticlib/nifticlib_2_0_0)
+
+
+
+## CLAIRE on Specific Systems <a name="clairesys"></a>
+
+### TACC's Longhorn System (03/17/21)
+
+Modules loaded:
+`
+1) xl/16.1.1             4) autotools/1.2   7) TACC
+2) spectrum_mpi/10.3.0   5) cmake/3.16.1    8) cuda/10.2 (g)
+3) git/2.24.1            6) xalt/2.10.2
+`
+
+Compilation of CLAIRE and its dependencies:
+
+```bash
+cd deps
+make WITH_BATCH=yes
+source deps/env_source.sh
+make BUILD_TARGET=POWER9 GPU_VERSION=70
+```
 
 
 ## Troubleshooting / Known Issues <a name="faq"></a>
