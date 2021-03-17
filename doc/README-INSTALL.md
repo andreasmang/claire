@@ -21,9 +21,11 @@ Go back to [README.md](../README.md).
 
 ## Installation Overview (Quick Guide)<a name="installation"></a>
 
-Here, we only provide a minimal installation guide. We provide a make environment to download and install the dependencies using generic settings that have worked on our systems. If this brief installation guide does not work for you, please consult the [detailed installation guide](#verboseinstall) below.
+In this section, we provide a minimal installation guide. We provide a make environment to download and install the dependencies using generic settings that have worked on most of our systems. If this brief installation guide does not work for you, please consult the [detailed installation guide](#verboseinstall) below.
 
 ### One Shot <a name="oneshot"></a>
+
+To use the default settings to build dependencies and CLAIRE itself do the following:
 
 ```bash
 cd deps
@@ -34,13 +36,15 @@ make -j
 ./bin/claire -synthetic 0
 ```
 
-The enviroment variable needs to be sourced every time you log out of your computer or start a new bash. As an alternative, you can add the content of `env_source.sh` to your `.bashrc` or `bash_profile`.
+The enviroment variables need to be sourced every time you log out of your computer or start a new bash (`source env_source.sh`). As an alternative, you can add the content of `env_source.sh` (for example) to your `.bashrc` or `.bash_profile`.
 
 ### Step by Step  <a name="stepbystep"></a>
 
+Next, we go over the steps outlined above step by step. Again, more details are provided [below](#verboseinstall).
+
 #### Step 1) Installing Dependencies
 
-To install the dependencies go to the top level directory of CLAIRE in your command window and execute the following commands within your command window:
+To install the dependencies (the PETSc and NIFTI libraries) go to the top level directory of CLAIRE in your command window and execute the following commands within your command window:
 
 ```bash
 cd deps
@@ -53,11 +57,12 @@ This makefile downloads and compiles the dependencies for CLAIRE. To add these d
 source env_source.sh
 ```
 
-The enviroment variable needs to be sourced every time you log out of your computer or start a new bash. As an alternative, you can add the content of `env_source.sh` to your `.bashrc` or `bash_profile`.
+Notice that the enviroment variables need to be sourced every time you log out of your computer or start a new bash. As an alternative, you can add the content of `env_source.sh` to your `.bashrc` or `bash_profile`.
+
 
 #### Step 2) Compiling CLAIRE
 
-Assuming that your in the top level directory of CLAIRE, all you need to do is to type
+Assuming that you are in the top level directory of CLAIRE, all you need to do is to type
 
 ```bash
 make -j
@@ -71,35 +76,12 @@ If you would like to verify if CLAIRE has been installed correctly run the follo
 ./bin/claire -synthetic 0
 ```
 
-Additional examples for executing CLAIRE are described in [doc/README-RUNME.md](README-RUNME.md)
+Additional examples for executing CLAIRE are described in [doc/README-RUNME.md](README-RUNME.md).
 
 
 ## Detailed Installation Guide <a name="verboseinstall"></a>
 
-### Requirements <a name="requirements"></a>
-
-* MPI (Open MPI; MVAPICH; Intel MPI); required by `PETSc`, and `CLAIRE`
-* cmake ([https://cmake.org](https://cmake.org)); required by `niftilib`
-* python ([https://www.python.org](https://www.python.org)); required by `PETSc` and the optional `pyclaire` bindings
-* zlib ([https://www.zlib.net/](https://www.zlib.net/)); requiered by `niftilib`
-* CUDA-API
-
-Make sure that the standard *wrappers* for `mpicc`, `mpicxx`, and `nvcc` are available on your system (either by loading the appropriate modules and/or by setting up the appropriate `PATH` and `LD_LIBRARY_PATH` definitions below). The compilation has been tested with `Open MPI`, `MVAPICH`, and `Intel MPI`.
-
-
-
-### Dependencies <a name="dependencies"></a>
-
-
-#### Required Dependencies and Compatibility
-
-The compiler needs `C++11` support. CLAIRE-GPU requires the following libraries to be installed on your system:
-
-* MPI (with GPU support (CUDA-aware MPI) for multi-GPU multi-node)
-* `PETSc` with CUDA support [https://www.mcs.anl.gov/petsc/](https://www.mcs.anl.gov/petsc/)
-* `niftilib` [https://sourceforge.net/projects/niftilib/files/nifticlib/](https://sourceforge.net/projects/niftilib/files/nifticlib/)
-* `zlib` [http://zlib.net](http://zlib.net)
-
+In this section we provide a more detailed description of the installation process to help users with troubleshooting. The following table lists system configurations on which we have successfully installed CLAIRE.
 
 |Test   | Compiler  | MPI            | CUDA | PETSc  | CPU    | GPU   | System       |
 |---    |---------- |-----           |------|------- |---     |---    |---           |
@@ -112,6 +94,34 @@ The compiler needs `C++11` support. CLAIRE-GPU requires the following libraries 
 |4967052| XLC 16.1  | Spectrum 10.3  | 10.2 | 3.12.4 | Power9 | GV100 | RHEL 7.8     |
 
 
+### Requirements <a name="requirements"></a>
+
+The minimal requirements for compiling CLAIRE on your system are:
+* MPI (Open MPI; MVAPICH; Intel MPI; ...; required by [PETSc](https://www.mcs.anl.gov/petsc), and CLAIRE)
+* cmake ([https://cmake.org](https://cmake.org); required by niftilib)
+* python ([https://www.python.org](https://www.python.org); required by [PETSc](https://www.mcs.anl.gov/petsc) and the optional pyclaire bindings)
+* zlib ([https://www.zlib.net/](https://www.zlib.net); required by niftilib)
+* CUDA-API
+
+Make sure that the standard *wrappers* for `mpicc`, `mpicxx`, and `nvcc` are available on your system (either by loading the appropriate modules and/or by setting up the appropriate `PATH` and `LD_LIBRARY_PATH` definitions). The compilation has been tested with Open MPI, MVAPICH, and Intel MPI.
+
+
+
+### Dependencies <a name="dependencies"></a>
+
+
+#### Required Dependencies and Compatibility
+
+The compiler needs `C++11` support. The GPU version of CLAIRE requires the following libraries to be installed on your system:
+
+* MPI (with GPU support (CUDA-aware MPI) for multi-GPU multi-node)
+* PETSc with CUDA support [https://www.mcs.anl.gov/petsc](https://www.mcs.anl.gov/petsc)
+* niftilib [https://sourceforge.net/projects/niftilib/files/nifticlib/](https://sourceforge.net/projects/niftilib/files/nifticlib/)
+* zlib [http://zlib.net](http://zlib.net)
+
+We provide functionality to install PETSc and niftilib on your system (see next section).
+
+
 #### Step 1: Downloading and Installing Dependencies
 
 To download and compile the libraries we provide a makefile (see [deps/makefile](../deps/makefile)). Simply run `make` with this script in your command window to download *tarball* files of the libraries identified above.
@@ -121,9 +131,9 @@ cd deps
 make
 ```
 
-The *compressed* tarball files (i.e, `LIBRARY-NAME.tar.gz`) should remain located in or be added to the [deps](../deps) folder. Make sure that all libraries are downloaded (the progress bar of `wget` should be full). To view the urls for the libraries you can take a look at the [deps/makefile](../deps/makefile). We provide additional information about these libraries [below](#depsinf). This also includes links to versions for these libraries that we have used with CLAIRE before.
+The *compressed* tarball files (i.e, `LIBRARY-NAME.tar.gz`) should remain located in or be added to the [deps](../deps) folder. Make sure that all libraries are downloaded (the progress bar of `wget` should be full). To view the urls for the libraries you can take a look at the [deps/makefile](../deps/makefile). We provide additional information about these libraries [below](#depsinf). This also includes links to versions for these libraries that we have used to compile the GPU version of CLAIRE before.
 
-The makefile has some optional parameters to configure the build. The parameters can be set by `make PARAMETER=value`. Multiple parameter-value pairs can be passed to the make command. The makefile to compile the dependencies has following parameters.
+The [makefile](../deps/makefile) has some optional parameters to configure the build. The parameters can be set by `make PARAMETER=value`. Multiple parameter-value pairs can be passed to the make command. The `[makefile](../deps/makefile)` to compile the dependencies has the following parameters.
 
 | PARAMETER       | Description                                           | Default | Valid Values  |
 | --------------- | ----------------------------------------------------- | ------- | ------        |
@@ -136,9 +146,11 @@ The makefile has some optional parameters to configure the build. The parameters
 | NVCC            | Path to CUDA compiler                                 | nvcc    | file path     |
 | WITH_PETSC_OPTS | additional PETSC compile options                      |         |               |
 
-The libraries will be extraxted and build in the `deps/lib` subfolder.
+The libraries will be extracted and build in the `deps/lib` subfolder.
+
 
 #### Step 2: Setting Environment Variables
+
 Before you are able to compile and run CLAIRE you need to add *environment variables* to your system. When building the libraries a file called `env_source.sh` is created. This file should be located in the [debs](../deps) subfolder. To add the environment variables temporarily (for the current session) to your system, do
 
 ```bash
@@ -152,10 +164,10 @@ To add them permanently, copy the content of `env_source.sh` to your `~/.bashrc`
 
 Before you can build CLAIRE you need to
 
-* Make sure that you have installed all *dependencies*.
-* Make sure all paths and compilers needed in the makefile are available on your system, i.e. mpicxx, nvcc, and the dependencies.
+* Make sure that you have installed all *dependencies* (see prior sections).
+* Make sure all paths and compilers needed in the `makefile` are available on your system, i.e. `mpicxx`, `nvcc`, and the dependencies.
 
-To first see the all options used by the makefile do (in the top level directory):
+To inspect all options used in the `makefile` for CLAIRE (see `[makefile](../makefile)`) do (in the top level directory):
 
 ```bash
 make VERBOSE=1 VVERBOSE=1 config
@@ -169,7 +181,7 @@ make -j
 
 If you build in parallel using `make -j`, on certain systems to many threads will be used. This will result in compilation errors. To fix this, run `make -j 12` instead (for quick access, you may want to define an alias in your `~/.bashrc`).
 
-The makefile has some optional parameters to configure the build. The parameters can be set by `make PARAMETER=value`. Multiple parameter-value pairs can be passed to the make command. The makefile to compile the dependencies has following parameters.
+The `[makefile](../makefile)` also contains optional parameters to configure the build. The parameters can be set by `make PARAMETER=value`. Multiple parameter-value pairs can be passed to the `make` command. The `makefile` to compile the dependencies has following parameters.
 
 | PARAMETER      | Description                                           | Default | Valid Values  |
 | -------------- | ----------------------------------------------------- | ------- | ------        |
@@ -195,12 +207,12 @@ The makefile has some optional parameters to configure the build. The parameters
 | VERBOSE        | if set to any value the make command is verbose       |         |               |
 | VVERBOSE       | if set to any value the make command is very verbose  |         |               |
 
-Not that the makefile generates a cache (`make.cache`) to detect if a complete rebuild of CLAIRE is needed. If this file is removed or not exsiting the next build will first do `make clean` automatically.
+Not that the `makefile` generates a cache (`make.cache`) to detect if a complete rebuild of CLAIRE is needed. If this file is removed or does not exsit the next build will first do `make clean` automatically.
 
 
 ## Executing CLAIRE <a name="execclaire"></a>
 
-If you would like to verify if CLAIRE has been installed correctly run the following command in your command window:
+If you would like to verify if CLAIRE has been installed correctly, run the following command in your command window:
 
 ```bash
 ./bin/claire -synthetic 0
