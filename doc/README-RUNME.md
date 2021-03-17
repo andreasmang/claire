@@ -5,6 +5,7 @@ Go back to [README.md](../README.md).
 ## Content
 * [Overview](#clairebins)
 * [Get Help](#clairehelp)
+* [Inpute Data](#clairedata)
 * [Simple Examples: `claire`](#claireexmp)
 	* [Synthetic Problem](#clairexmp1)
 	* [Synthetic Problem (Parallel Execution)](#clairexmp2)
@@ -20,7 +21,7 @@ Go back to [README.md](../README.md).
 
 ## Overview <a name="clairebins"></a>
 
-CLAIRE has two main binaries: `claire` and `clairetools`.
+CLAIRE is a software for 3D diffeomorphic image registration. CLAIRE has two main binaries: `claire` and `clairetools`.
 
   * `claire`: perform registrations
   * `clairetools`: post and pre-processing
@@ -43,6 +44,12 @@ claire -help
 ```bash
 clairetools -help
 ```
+
+
+## Inpute Data <a name="clairedata"></a>
+
+CLAIRE is a software for 3D diffeomorphic image registration. Supported input formats for CLAIRE are images stored as '*.nii', '*.nii.gz' or '*.hdr' and '*.img(.gz)'.
+
 
 ## Simple Examples: `claire` <a name="claireexmp"></a>
 
