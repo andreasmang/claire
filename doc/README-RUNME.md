@@ -5,7 +5,7 @@ Go back to [README.md](../README.md).
 ## Content
 * [Overview](#clairebins)
 * [Get Help](#clairehelp)
-* [Inpute Data](#clairedata)
+* [Input Data](#clairedata)
 * [Simple Examples: `claire`](#claireexmp)
 	* [Synthetic Problem](#clairexmp1)
 	* [Synthetic Problem (Parallel Execution)](#clairexmp2)
@@ -46,7 +46,7 @@ clairetools -help
 ```
 
 
-## Inpute Data <a name="clairedata"></a>
+## Input Data <a name="clairedata"></a>
 
 CLAIRE is a software for 3D diffeomorphic image registration. Supported input formats for CLAIRE are images stored as '*.nii', '*.nii.gz' or '*.hdr' and '*.img(.gz)'.
 
@@ -162,14 +162,14 @@ mpirun -np 20 $bindir/clairetools -v1 velocity-field-x1.nii.gz       \
 
 ## Testing and Benchmarks <a name="testing"></a>
 
-We have implemented numerical tests for the main computational kernels available in CLAIRE to study the performance and accuracy of the mathematical operators that appear in the optimality system. For reproducability, we also posted the NIREP data at [https://github.com/andreasmang/nirep](https://github.com/andreasmang/nirep). We have used this data extensively in our most recent [prior work](README-REFERENCES.md).
+We have implemented numerical tests for the main computational kernels available in CLAIRE to study the performance and accuracy of the mathematical operators that appear in the optimality system. For reproducability, we also posted the NIREP data at [https://github.com/andreasmang/nirep](https://github.com/andreasmang/nirep). We have used this data extensively in our [prior work](README-REFERENCES.md).
 
-To build **binaries for testing** set `BUILD_TEST=yes` in the makefile. This will build two binaries: `benchmark` and `test`.  The `test` application allows users to check the main computational kernels:
-* the interpolation kernels (`-interp` flag; checks interpolation accuracy)
+To build **binaries for testing** set `BUILD_TEST=yes` in the `makefile` to compile CLAIRE (see [makefile](../makefile)). This will build two binaries: `benchmark` and `test`.  The `test` application allows users to check the main computational kernels:
+* the interpolation kernels (`-interp` flag; to check the interpolation accuracy)
 * the regularization operators (e.g., biharmonic or laplacian regularization operators; `-reg` flag)
-* numerical differentiation (`-diff`; checks differentiation accuracy)
+* numerical differentiation (`-diff`; to check the differentiation accuracy)
 
-These tests are implemented in the `*.cpp` files in the [UnitTests](https://github.com/andreasmang/claire/tree/gpu/src/UnitTests) subfolder.
+These tests are implemented in the `*.cpp` files available in the [UnitTests](https://github.com/andreasmang/claire/tree/gpu/src/UnitTests) subfolder.
 
 We have also implemented several **high-level numerical checks** to assess the performance of our methodology and ensure that the mathematical operators are correct.
 
@@ -186,5 +186,9 @@ The **tests/debug options** directly available within the `claire` binary are th
 	* trend of the gradient norm (should decrease but not necessarily monotonically)
 	* number of line search steps (should be 1 for a Newton method subject to accuracy requirements)
 	* and much more...
-* The accuracy of the symmetry of the discretized Hessian operator can be monitored by enabling the `-checksymmetry` flag in `claire`. Notice that we consider an optimize-then-discretize approach and numerical schemes that do not preserve symmetry; consequently, in our current implementation, the Hessian is only symmetric up to the discretization error of the adjoint operators (~1e-2).
+* The accuracy of the symmetry of the discretized Hessian operator can be monitored by enabling the `-checksymmetry` flag in `claire`:
+```bash
+./bin/claire [args] -checksymmetry
+```
+Notice that we consider an optimize-then-discretize approach and numerical schemes that do not preserve symmetry; consequently, in our current implementation, the Hessian is only symmetric up to the discretization error of the adjoint operators (~1e-2).
 * The approximation accuracy of the gradient and Hessian can be monitored by enabling the `-derivativecheck` flag in `claire`. We report the assymptotic behavior of the Taylor expansion. The approximation error should decrease with decreasing perburbation (i.e., the error should converge). However, we do, in general not expect to observe quadratic or cubic convergence (as we would if we considered a discretize-then-optimize approach).
