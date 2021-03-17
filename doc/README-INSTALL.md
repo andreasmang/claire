@@ -124,7 +124,7 @@ We provide functionality to install PETSc and niftilib on your system (see next 
 
 #### Step 1: Downloading and Installing Dependencies
 
-To download and compile the libraries we provide a makefile (see [deps/makefile](../deps/makefile)). Simply run `make` with this script in your command window to download *tarball* files of the libraries identified above.
+To download and compile the libraries we provide a `makefile` (see [deps/makefile](../deps/makefile)). Simply run `make` with this script in your command window to download *tarball* files of the libraries identified above.
 
 ```bash
 cd deps
@@ -133,7 +133,7 @@ make
 
 The *compressed* tarball files (i.e, `LIBRARY-NAME.tar.gz`) should remain located in or be added to the [deps](../deps) folder. Make sure that all libraries are downloaded (the progress bar of `wget` should be full). To view the urls for the libraries you can take a look at the [deps/makefile](../deps/makefile). We provide additional information about these libraries [below](#depsinf). This also includes links to versions for these libraries that we have used to compile the GPU version of CLAIRE before.
 
-The [makefile](../deps/makefile) has some optional parameters to configure the build. The parameters can be set by `make PARAMETER=value`. Multiple parameter-value pairs can be passed to the make command. The `[makefile](../deps/makefile)` to compile the dependencies has the following parameters.
+The [makefile](../deps/makefile) has some optional parameters to configure the build. The parameters can be set by `make PARAMETER=value`. Multiple parameter-value pairs can be passed to the make command. The [makefile](../deps/makefile) to compile the dependencies has the following parameters.
 
 | PARAMETER       | Description                                           | Default | Valid Values  |
 | --------------- | ----------------------------------------------------- | ------- | ------        |
@@ -167,7 +167,7 @@ Before you can build CLAIRE you need to
 * Make sure that you have installed all *dependencies* (see prior sections).
 * Make sure all paths and compilers needed in the `makefile` are available on your system, i.e. `mpicxx`, `nvcc`, and the dependencies.
 
-To inspect all options used in the `makefile` for CLAIRE (see `[makefile](../makefile)`) do (in the top level directory):
+To inspect all options used in the `makefile` for CLAIRE (see [makefile](../makefile)) do (in the top level directory):
 
 ```bash
 make VERBOSE=1 VVERBOSE=1 config
@@ -181,7 +181,7 @@ make -j
 
 If you build in parallel using `make -j`, on certain systems to many threads will be used. This will result in compilation errors. To fix this, run `make -j 12` instead (for quick access, you may want to define an alias in your `~/.bashrc`).
 
-The `[makefile](../makefile)` also contains optional parameters to configure the build. The parameters can be set by `make PARAMETER=value`. Multiple parameter-value pairs can be passed to the `make` command. The `makefile` to compile the dependencies has following parameters.
+The [makefile](../makefile) also contains optional parameters to configure the build. The parameters can be set by `make PARAMETER=value`. Multiple parameter-value pairs can be passed to the `make` command. The `makefile` to compile the dependencies has following parameters.
 
 | PARAMETER      | Description                                           | Default | Valid Values  |
 | -------------- | ----------------------------------------------------- | ------- | ------        |
