@@ -42,7 +42,7 @@ endif
 
 ifeq ($(BUILD_TARGET), POWER9)
 	CXXFLAGS += -DREG_HAS_MPICUDA
-	CXXFLAGS += -DPOWER9 -Wno-unused-function
+	CXXFLAGS += -DPOWER9
 endif
 
 ifeq ($(BUILD_GPU), yes)
@@ -84,7 +84,7 @@ endif
 GIT_VERSION := $(shell git describe --abbrev=4 --always --tags)
 CXXFLAGS += -DGIT_VERSION=$(GIT_VERSION)
 
-CXXFLAGS += -Wall -c -std=$(CPP_VERSION)
+CXXFLAGS += -Wall -Wno-unused-function -c -std=$(CPP_VERSION)
 
 ifeq ($(WITH_DEBUG), yes)
 	CXXFLAGS += -g
