@@ -165,24 +165,49 @@ mpirun -np 20 $BINDIR/clairetools -v1 velocity-field-x1.nii.gz       \
 We have implemented numerical tests for the main computational kernels available in CLAIRE to study the performance and accuracy of the mathematical operators that appear in the optimality system. For reproducability, we also posted the NIREP data at [https://github.com/andreasmang/nirep](https://github.com/andreasmang/nirep). We have used this data extensively in our [prior work](README-REFERENCES.md).
 
 To build **binaries for testing** set `BUILD_TEST=yes` in the `makefile` to compile CLAIRE (see [makefile](../makefile)). This will build two binaries: `benchmark` and `test`.  The `test` application allows users to check the main computational kernels:
-* the interpolation kernels (`-interp` flag; to check the interpolation accuracy)
-* the regularization operators (e.g., biharmonic or laplacian regularization operators; `-reg` flag)
-* numerical differentiation (`-diff`; to check the differentiation accuracy)
-
+* the interpolation kernels (to check the interpolation accuracy)
+```bash
+$BINDIR/test [other args] -interp
+```
+* the regularization operators (e.g., biharmonic or laplacian regularization operators)
+```bash
+$BINDIR/test [other args] -reg
+```
+* numerical differentiation (to check the accuracy of the differentiation operators)
+```bash
+$BINDIR/test [other args] -diff
+```
+* correctness of gradient and hessian (see below for a more detailed description; can also be used within `claire`) 
+```bash
+$BINDIR/test [other args] -gradient
+$BINDIR/test [other args] -hessian
+```
+* accuracy of trajectory computation (semi-lagrangian time integration scheme) 
+```bash
+$BINDIR/test [other args] -trajectory
+```
 These tests are implemented in the `*.cpp` files available in the [UnitTests](https://github.com/andreasmang/claire/tree/gpu/src/UnitTests) subfolder.
 
 We have also implemented several **high-level numerical checks** to assess the performance of our methodology and ensure that the mathematical operators are correct.
 
 The `benchmark` binary allows users to (i) check the accuracy of the forward operator and (ii) report the runtime for evaluating several key mathematical operators. Use the `-help` flag to see all options. The main tests are the following:
 * check error of forward operator (solve the forward problem for $v$ and $-v$ and check error with respect to initial condition for $t=0$)
+```bash
+$BINDIR/benchmark [other args] -terror
+```
 * report runtimes for evaluating the forward operator, the gradient operator and the Hessian matvec.
+
+```bash
+$BINDIR/benchmark [other args] -forward
+$BINDIR/benchmark [other args] -gradient
+$BINDIR/benchmark [other args] -hessmatvec
+```
 
 The **tests/debug options** directly available within the `claire` binary are the following (Use the `-help` flag to see all options. Notice that the help provides a `other parameters/debugging` section that describes the options mentioned below):
 * The default test in CLAIRE is to consider synthetic test problems. The user can select between several test problems of varying complexity by setting the flag `-synthetic i`, where `i` selects the particular test case (valid values for `i` are `0`, `1`, ..., `5`).
 ```bash
 $BINDIR/claire [other args] -synthetic 0 
 ```
-
 * The user can control the verbosity level of `claire` by using the `-verbose 2` flag (debug mode verbosity). This will, e.g., enable command window outputs such as the residual in each iteration of the Krylov subspace method used to compute the search direction (and much more).
 ```bash
 $BINDIR/claire [other args] -verbose 2
