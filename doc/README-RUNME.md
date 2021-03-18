@@ -38,13 +38,11 @@ These binaries can be found in the `bin` folder after CLAIRE has been built succ
 To learn more about the options available in `claire` and `clairetools` add the `-help` flag:
 
 ```bash
-claire -help
+$BINDIR/claire -help
+$BINDIR/clairetools -help
 ```
 
-```bash
-clairetools -help
-```
-
+`$BINDIR` is the directory in which the binary is located.
 
 ## Input Data <a name="clairedata"></a>
 
@@ -164,7 +162,16 @@ mpirun -np 20 $BINDIR/clairetools -v1 velocity-field-x1.nii.gz       \
 
 We have implemented numerical tests for the main computational kernels available in CLAIRE to study the performance and accuracy of the mathematical operators that appear in the optimality system. For reproducability, we also posted the NIREP data at [https://github.com/andreasmang/nirep](https://github.com/andreasmang/nirep). We have used this data extensively in our [prior work](README-REFERENCES.md).
 
-To build **binaries for testing** set `BUILD_TEST=yes` in the `makefile` to compile CLAIRE (see [makefile](../makefile)). This will build two binaries: `benchmark` and `test`.  The `test` application allows users to check the main computational kernels:
+To build **binaries for testing** set `BUILD_TEST=yes` in the `makefile` to compile CLAIRE (see [makefile](../makefile)). This will build two binaries: `benchmark` and `test`. To inspect available options use the `-help` flag
+```bash
+$BINDIR/test -help
+$BINDIR/benchmarks -help
+```
+
+`$BINDIR` is the directory in which the binary is located.
+
+
+The `test` application allows users to check the main computational kernels:
 * the interpolation kernels (to check the interpolation accuracy)
 ```bash
 $BINDIR/test [other args] -interp
