@@ -32,7 +32,7 @@
 namespace reg {
   
 class RegOpt;
-class FourierTransform;
+struct FourierTransform;
 class VecField;
 
 class Spectral {
