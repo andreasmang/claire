@@ -31,8 +31,8 @@
 #define perthreadcomp 8
 
 
-const float h_c[HALO] = {4.f / 5.f , -1.f / 5.f , 4.f / 105.f, -1.f / 280.f};
-const float h2_c[HALO+1] = {-205.f/72.f, 8.f / 5.f , -1.f / 5.f , 8.f / 315.f, -1.f / 560.f};
+//const float h_c[HALO] = {4.f / 5.f , -1.f / 5.f , 4.f / 105.f, -1.f / 280.f};
+//const float h2_c[HALO+1] = {-205.f/72.f, 8.f / 5.f , -1.f / 5.f , 8.f / 315.f, -1.f / 560.f};
 
 
 // device constants
@@ -992,7 +992,7 @@ PetscErrorCode initConstants(const IntType* iisize, const IntType* iisize_g, con
   PetscErrorCode ierr = 0;
   PetscFunctionBegin;
   
-  int halo[3], isize[3], isize_g[3];
+  /*int halo[3], isize[3], isize_g[3];
   halo[0] = ihalo[0]; halo[1] = ihalo[1]; halo[2] = ihalo[2];
   isize[0] = iisize[0]; isize[1] = iisize[1]; isize[2] = iisize[2];
   isize_g[0] = iisize_g[0]; isize_g[1] = iisize_g[1]; isize_g[2] = iisize_g[2];
@@ -1040,7 +1040,7 @@ PetscErrorCode initConstants(const IntType* iisize, const IntType* iisize_g, con
   //cudaMemcpyToSymbol(d_cyy, h_ct, sizeof(float)*(HALO+1), 0, cudaMemcpyHostToDevice);
   for(int l=0; l<=HALO; l++) h_ct[l] = h2_c[l]/(hx[2]*hx[2]);
   //cudaMemcpyToSymbol(d_czz, h_ct, sizeof(float)*(HALO+1), 0, cudaMemcpyHostToDevice);
-  
+  */
   PetscFunctionReturn(ierr);
 }
 

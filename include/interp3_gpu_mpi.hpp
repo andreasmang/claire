@@ -10,6 +10,15 @@
 #include <vector>
 #include <iostream>
 #include "CLAIREUtils.hpp"
+#include <thrust/device_vector.h>
+#include <thrust/device_ptr.h>
+#include <thrust/host_vector.h>
+#include <thrust/copy.h>
+#include <thrust/count.h>
+#include <thrust/execution_policy.h>
+#include <thrust/device_malloc.h>
+#include <thrust/device_free.h>
+#include <thrust/extrema.h>
 
 #if defined(PETSC_USE_REAL_SINGLE)
   typedef float ScalarType;
@@ -134,6 +143,6 @@ void get_count(short* arr, int size, int val, int* count);
 void print_norm(ScalarType* arr, int N);
 void print_max(ScalarType* arr, int N);
 void test_count();
-void print_vector(thrust::device_ptr<ScalarType> arr, int N, int stride);
+//void print_vector(thrust::device_ptr<ScalarType> arr, int N, int stride);
 
 #endif

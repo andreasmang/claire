@@ -76,7 +76,7 @@ PetscErrorCode DistanceMeasureNCC::ClearMemory() {
 PetscErrorCode DistanceMeasureNCC::SetupScale(){
     PetscErrorCode ierr = 0;	
     DistanceMeasureKernel::EvaluateFunctionalNCC kernel;
-    ScalarType *p_mr = NULL, *p_mt = NULL, *p_w = NULL;
+    //ScalarType *p_mr = NULL, *p_mt = NULL, *p_w = NULL;
     IntType nc, ng;
     ScalarType norm_l2, norm_mT, norm_mR, inpr_mT_mR, sum_mT, sum_mR;
     int rval;
@@ -158,7 +158,7 @@ PetscErrorCode DistanceMeasureNCC::SetupScale(){
  *******************************************************************/
 PetscErrorCode DistanceMeasureNCC::EvaluateFunctional(ScalarType* D) {
     PetscErrorCode ierr = 0;
-    ScalarType *p_mr = NULL, *p_m = NULL, *p_w = NULL;
+    //ScalarType *p_mr = NULL, *p_m = NULL, *p_w = NULL;
     DistanceMeasureKernel::EvaluateFunctionalNCC kernel;
     IntType nt, ng;
     ScalarType norm_m1, norm_mR, inpr_m1_mR, sum_m1, sum_mR, scale;
@@ -249,11 +249,11 @@ PetscErrorCode DistanceMeasureNCC::EvaluateFunctional(ScalarType* D) {
  *******************************************************************/
 PetscErrorCode DistanceMeasureNCC::SetFinalConditionAE() {
     PetscErrorCode ierr = 0;
-    IntType nl, nc, nt, ng;
+    IntType nt, ng;
     int rval;
-    ScalarType *p_mr = NULL, *p_m = NULL, *p_l = NULL, *p_w = NULL;
+    //ScalarType *p_mr = NULL, *p_m = NULL, *p_l = NULL, *p_w = NULL;
     ScalarType norm_m1, norm_mR, inpr_m1_mR, sum_m1, sum_mR;
-    ScalarType const1, const2, hd, scale;
+    ScalarType hd, scale;
     DistanceMeasureKernel::FinalConditionNCC kernel;
     PetscFunctionBegin;
 
@@ -353,7 +353,7 @@ PetscErrorCode DistanceMeasureNCC::SetFinalConditionAE() {
  *******************************************************************/
 PetscErrorCode DistanceMeasureNCC::SetFinalConditionIAE() {
     PetscErrorCode ierr = 0;
-    IntType nt, nc, nl, ng;
+    IntType nt, ng;
     int rval;
     //ScalarType const1, const2, const3, const4, const5;
     ScalarType hd, scale; 

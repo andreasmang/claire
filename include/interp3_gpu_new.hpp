@@ -9,7 +9,7 @@
 #include <cuda.h>
 #include <cuda_runtime.h>
 #include <cuda_helper.hpp>
-#include <thrust/device_vector.h>
+/*#include <thrust/device_vector.h>
 #include <thrust/device_ptr.h>
 #include <thrust/host_vector.h>
 #include <thrust/copy.h>
@@ -17,7 +17,7 @@
 #include <thrust/execution_policy.h>
 #include <thrust/device_malloc.h>
 #include <thrust/device_free.h>
-#include <thrust/extrema.h>
+#include <thrust/extrema.h>*/
 
 //#define BLOCK_COORDINATES
 

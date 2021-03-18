@@ -1337,13 +1337,13 @@ void gpuInterpVec3D(
     cudaDeviceSynchronize();
 }
 
-void getMax(ScalarType* x, int nl, ScalarType* max) {
+/*void getMax(ScalarType* x, int nl, ScalarType* max) {
     thrust::device_ptr<ScalarType> x_thrust;
     x_thrust = thrust::device_pointer_cast (x);
     // find the max itr
     thrust::device_vector<ScalarType>::iterator it = thrust::max_element(x_thrust, x_thrust + nl);
     *max = *it;
-}
+}*/
     
 __global__ void normalizeQueryPointsKernel(ScalarType* xq1, ScalarType* xq2, ScalarType* xq3, ScalarType* all_query_points, int nq, const float3 ng, const float3 offset) {
 

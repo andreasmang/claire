@@ -1931,7 +1931,6 @@ PetscErrorCode CLAIRE::PrecondHessMatVecSym(Vec Hvtilde, Vec vtilde) {
 
 PetscErrorCode CLAIRE::SymTwoLevelHessMatVec(Vec Hvtilde, Vec vtilde) {
     PetscErrorCode ierr = 0;
-    ScalarType hd;
     PetscFunctionBegin;
     
     if (this->m_Opt->m_Verbosity > 2) {
@@ -2019,7 +2018,7 @@ PetscErrorCode CLAIRE::SymTwoLevelHessMatVec(Vec Hvtilde, Vec vtilde) {
     
     this->m_CoarseReg->m_Regularization->ApplyInverse(this->m_CoarseReg->m_WorkVecField1, this->m_CoarseReg->m_WorkVecField2, true);
     
-    //hd = this->m_CoarseRegOpt->GetLebesgueMeasure();
+    //ScalarType hd = this->m_CoarseRegOpt->GetLebesgueMeasure();
     //this->m_CoarseReg->m_WorkVecField1->Scale(this->m_Opt->GetLebesgueMeasure()/hd);
     
     hd = this->m_CoarseRegOpt->GetLebesgueMeasure();

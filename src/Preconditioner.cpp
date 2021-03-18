@@ -377,7 +377,7 @@ PetscErrorCode Preconditioner::DoSetup() {
 PetscErrorCode Preconditioner::SetupCoarseGrid() {
     PetscErrorCode ierr = 0;
     IntType nt, nc, nlc, ngc, nxc[3], nx[3];
-    ScalarType scale, value;
+    //ScalarType scale, value;
     std::stringstream ss;
     PetscFunctionBegin;
 
@@ -798,11 +798,11 @@ PetscErrorCode Preconditioner::ApplyH0Precond(Vec precx, Vec x, bool twolevel) {
  *******************************************************************/
 PetscErrorCode Preconditioner::ApplyRestriction() {
     PetscErrorCode ierr = 0;
-    IntType nl_f, nl_c, nt, nc, l_f, l_c, lnext_f, nx_c[3], nx_f[3];
+    IntType nl_f, nl_c, nt, nc, l_f, l_c, nx_c[3], nx_f[3];
     std::stringstream ss;
     Vec m = NULL, lambda = NULL;
-    ScalarType *p_mj = NULL, *p_m = NULL, *p_mjcoarse = NULL, *p_mcoarse = NULL,
-                *p_lj = NULL, *p_l = NULL, *p_ljcoarse = NULL, *p_lcoarse = NULL;
+    ScalarType *p_m = NULL, *p_mcoarse = NULL,
+                *p_l = NULL, *p_lcoarse = NULL;
     bool applyrestriction = true;
     PetscFunctionBegin;
 
@@ -863,7 +863,7 @@ PetscErrorCode Preconditioner::ApplyRestriction() {
     for (IntType j = 0; j <= nt; ++j) {  // for all time points
         for (IntType k = 0; k < nc; ++k) {  // for all components
             l_f = j*nl_f*nc + k*nl_f;
-            lnext_f = j*nl_f*nc + (k+1)*nl_f;
+            //lnext_f = j*nl_f*nc + (k+1)*nl_f;
 
             /////////////////////////////////////////////////////////////////////
             ////// state variable

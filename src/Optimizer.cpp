@@ -131,7 +131,7 @@ PetscErrorCode Optimizer::SetInitialGuess(VecField* x) {
     PetscErrorCode ierr = 0;
     std::stringstream ss;
     ScalarType value;
-    IntType nlu, ngu;
+    //IntType nlu, ngu;
 
     PetscFunctionBegin;
     this->m_Opt->Enter(__func__);

@@ -239,11 +239,11 @@ PetscErrorCode FinalConditionSL2::ComputeFinalConditionIAE() {
   cudaDeviceSynchronize();
   cudaCheckKernelError();
   
-  cublasStatus_t stat;
+  //cublasStatus_t stat;
   cublasHandle_t handle; 
-  stat = cublasCreate(&handle);
-  stat = cublasSnrm2(handle, nl*nc, pM, 1, &norm_mtilde_loc);
-  stat = cublasDestroy(handle);
+  cublasCreate(&handle);
+  cublasSnrm2(handle, nl*nc, pM, 1, &norm_mtilde_loc);
+  cublasDestroy(handle);
 
   
   PetscFunctionReturn(ierr);
@@ -280,9 +280,9 @@ __global__ void FinalConditionIAENCC_kernel (ScalarType *pLtilde, const ScalarTy
 /* Compute the Registration Functional */
 PetscErrorCode EvaluateFunctionalNCC::ComputeScaleMask() {
   PetscErrorCode ierr = 0;
-  dim3 block(256, 1, 1);
-  dim3 grid((nl + 255)/256, nc, 1);
-  ScalarType *res = nullptr;
+  //dim3 block(256, 1, 1);
+  //dim3 grid((nl + 255)/256, nc, 1);
+  //ScalarType *res = nullptr;
   PetscFunctionBegin;
   
   // not implemented
@@ -293,27 +293,27 @@ PetscErrorCode EvaluateFunctionalNCC::ComputeScaleMask() {
 /* Compute the Registration Functional */
 PetscErrorCode EvaluateFunctionalNCC::ComputeScale() {
   PetscErrorCode ierr = 0;
-  cublasStatus_t stat;
+  //cublasStatus_t stat;
   cublasHandle_t handle; 
   dim3 block(256, 1, 1);
   dim3 grid((nl + 255)/256, nc, 1);
   ScalarType *res = nullptr;
-  ScalarType sum = 0.0;
+  //ScalarType sum = 0.0;
   PetscFunctionBegin;
   
   // compute local sums
   sum_mT_loc = thrust::reduce(thrust::device, pMt, pMt+nl*nc);
   sum_mR_loc = thrust::reduce(thrust::device, pMr, pMr+nl*nc);
   
-  stat = cublasCreate(&handle);
+  cublasCreate(&handle);
 
-  stat = cublasSnrm2(handle, nl*nc, pMt, 1, &norm_mT_loc);
+  cublasSnrm2(handle, nl*nc, pMt, 1, &norm_mT_loc);
   norm_mT_loc *= norm_mT_loc;
-  stat = cublasSnrm2(handle, nl*nc, pMr, 1, &norm_mR_loc);
+  cublasSnrm2(handle, nl*nc, pMr, 1, &norm_mR_loc);
   norm_mR_loc *= norm_mR_loc;
-  stat = cublasSdot(handle, nl*nc, pMt, 1, pMr, 1, &inpr_mT_mR_loc);
+  cublasSdot(handle, nl*nc, pMt, 1, pMr, 1, &inpr_mT_mR_loc);
 
-  stat = cublasDestroy(handle);
+  cublasDestroy(handle);
   
   ierr = AllocateMemoryOnce(res, grid.x*grid.y*sizeof(ScalarType)); CHKERRQ(ierr);
   
@@ -341,18 +341,18 @@ PetscErrorCode EvaluateFunctionalNCC::ComputeFunctional() {
   sum_mR_loc = thrust::reduce(thrust::device, pMr, pMr+nl*nc);
   sum_m1_loc = thrust::reduce(thrust::device, pM, pM+nl*nc);
 
-  cublasStatus_t stat;
+  //cublasStatus_t stat;
   cublasHandle_t handle; 
 
-  stat = cublasCreate(&handle);
+  cublasCreate(&handle);
 
-  stat = cublasSnrm2(handle, nl*nc, pM, 1, &norm_m1_loc);
+  cublasSnrm2(handle, nl*nc, pM, 1, &norm_m1_loc);
   norm_m1_loc *= norm_m1_loc;
-  stat = cublasSnrm2(handle, nl*nc, pMr, 1, &norm_mR_loc);
+  cublasSnrm2(handle, nl*nc, pMr, 1, &norm_mR_loc);
   norm_mR_loc *= norm_mR_loc;
-  stat = cublasSdot(handle, nl*nc, pM, 1, pMr, 1, &inpr_m1_mR_loc);
+  cublasSdot(handle, nl*nc, pM, 1, pMr, 1, &inpr_m1_mR_loc);
 
-  stat = cublasDestroy(handle);
+  cublasDestroy(handle);
   
   PetscFunctionReturn(ierr);
 }
@@ -391,7 +391,7 @@ PetscErrorCode FinalConditionNCC::ComputeFinalConditionMaskAE() {
 
 PetscErrorCode FinalConditionNCC::ComputeInnerProductsFinalConditionAE() {
   PetscErrorCode ierr = 0;
-  cublasStatus_t stat;
+  //cublasStatus_t stat;
   cublasHandle_t handle; 
   PetscFunctionBegin;
 
@@ -399,13 +399,13 @@ PetscErrorCode FinalConditionNCC::ComputeInnerProductsFinalConditionAE() {
   sum_mR_loc = thrust::reduce(thrust::device, pMr, pMr+nl*nc);
   sum_m1_loc = thrust::reduce(thrust::device, pM, pM+nl*nc);
   
-  stat = cublasCreate(&handle);
+  cublasCreate(&handle);
   
-  stat = cublasSdot(handle, nl*nc, pM, 1, pM, 1, &norm_m1_loc);
-  stat = cublasSdot(handle, nl*nc, pMr, 1, pMr, 1, &norm_mR_loc);
-  stat = cublasSdot(handle, nl*nc, pM, 1, pMr, 1, &inpr_m1_mR_loc);
+  cublasSdot(handle, nl*nc, pM, 1, pM, 1, &norm_m1_loc);
+  cublasSdot(handle, nl*nc, pMr, 1, pMr, 1, &norm_mR_loc);
+  cublasSdot(handle, nl*nc, pM, 1, pMr, 1, &inpr_m1_mR_loc);
   
-  stat = cublasDestroy(handle);
+  cublasDestroy(handle);
 
   PetscFunctionReturn(ierr);
 }
@@ -418,28 +418,28 @@ PetscErrorCode FinalConditionNCC::ComputeInnerProductsFinalConditionIAE() {
   sum_m1_loc = thrust::reduce(thrust::device, pM, pM+nl*nc);
   sum_mtilde_loc = thrust::reduce(thrust::device, pMtilde, pMtilde+nl*nc);
 
-  cublasStatus_t stat;
+  //cublasStatus_t stat;
   cublasHandle_t handle; 
-  stat = cublasCreate(&handle);
+  cublasCreate(&handle);
 
   ScalarType norm_mtilde_loc = 0;
-  stat = cublasSnrm2(handle, nl*nc, pMtilde, 1, &norm_mtilde_loc);
+  cublasSnrm2(handle, nl*nc, pMtilde, 1, &norm_mtilde_loc);
   norm_mtilde_loc *= norm_mtilde_loc;
   
-  stat = cublasSdot(handle, nl*nc, pMr, 1, pMtilde, 1, &inpr_mR_mtilde_loc);
+  cublasSdot(handle, nl*nc, pMr, 1, pMtilde, 1, &inpr_mR_mtilde_loc);
   ierr = Assert(!PetscIsNanReal(inpr_mR_mtilde_loc), "is nan"); CHKERRQ(ierr);
-  stat = cublasSdot(handle, nl*nc, pM, 1, pMtilde, 1, &inpr_m1_mtilde_loc);
+  cublasSdot(handle, nl*nc, pM, 1, pMtilde, 1, &inpr_m1_mtilde_loc);
   ierr = Assert(!PetscIsNanReal(inpr_m1_mtilde_loc), "is nan"); CHKERRQ(ierr);
-  stat = cublasSnrm2(handle, nl*nc, pM, 1, &norm_m1_loc);
+  cublasSnrm2(handle, nl*nc, pM, 1, &norm_m1_loc);
   norm_m1_loc *= norm_m1_loc;
   ierr = Assert(!PetscIsNanReal(norm_m1_loc), "is nan"); CHKERRQ(ierr);
-  stat = cublasSnrm2(handle, nl*nc, pMr, 1, &norm_mR_loc);
+  cublasSnrm2(handle, nl*nc, pMr, 1, &norm_mR_loc);
   norm_mR_loc *= norm_mR_loc;
   ierr = Assert(!PetscIsNanReal(norm_mR_loc), "is nan"); CHKERRQ(ierr);
-  stat = cublasSdot(handle, nl*nc, pM, 1, pMr, 1, &inpr_m1_mR_loc);
+  cublasSdot(handle, nl*nc, pM, 1, pMr, 1, &inpr_m1_mR_loc);
   ierr = Assert(!PetscIsNanReal(inpr_m1_mR_loc), "is nan"); CHKERRQ(ierr);
   
-  stat = cublasDestroy(handle);
+  cublasDestroy(handle);
 
   PetscFunctionReturn(ierr);
 }
