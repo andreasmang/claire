@@ -23,6 +23,7 @@
 #include "BenchmarkOpt.hpp"
 
 #define _TO_STR(s) #s
+#define TO_STR(s) _TO_STR(s)
 
 
 namespace reg {
@@ -331,7 +332,7 @@ PetscErrorCode BenchmarkOpt::DisplayOptions() {
         std::cout << line << std::endl;
         std::time_t result = std::time(NULL);
 #ifdef GIT_VERSION
-        std::cout << " Version " << _TO_STR(GIT_VERSION) << " " << std::asctime(std::localtime(&result));
+        std::cout << " Version " << TO_STR(GIT_VERSION) << " " << std::asctime(std::localtime(&result));
 #else
         std::cout << " " << std::asctime(std::localtime(&result));
 #endif

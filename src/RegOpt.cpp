@@ -25,6 +25,7 @@
 #include "cuda_helper.hpp"
 
 #define _TO_STR(s) #s
+#define TO_STR(s) _TO_STR(s)
 
 // trim from start
 static inline std::string &ltrim(std::string &s) {
@@ -2355,7 +2356,7 @@ PetscErrorCode RegOpt::DisplayOptions() {
         std::cout << line << std::endl;
         std::time_t result = std::time(NULL);
 #ifdef GIT_VERSION
-        std::cout << " Version " << _TO_STR(GIT_VERSION) << " " << std::asctime(std::localtime(&result));
+        std::cout << " Version " << TO_STR(GIT_VERSION) << " " << std::asctime(std::localtime(&result));
 #else
         std::cout << " " << std::asctime(std::localtime(&result));
 #endif
@@ -3337,7 +3338,7 @@ PetscErrorCode RegOpt::WriteWorkLoadLog(std::ostream& logwriter) {
         std::time_t result = std::time(NULL);
         logwriter << "# run finished on " << std::asctime(std::localtime(&result));
 #ifdef GIT_VERSION
-        logwriter << "# git version " << _TO_STR(GIT_VERSION) << std::endl;
+        logwriter << "# git version " << TO_STR(GIT_VERSION) << std::endl;
 #endif
         logwriter << "# problem size (nx1,nx2,nx3,nc,nt,nl,ng)=("
                   << this->m_Domain.nx[0] << ","
@@ -3653,7 +3654,7 @@ PetscErrorCode RegOpt::WriteWorkLoadLogReadable(std::ostream& logwriter) {
         std::time_t result = std::time(NULL);
         logwriter << "# run finished on " << std::asctime(std::localtime(&result));
 #ifdef GIT_VERSION
-        logwriter << "# git version " << _TO_STR(GIT_VERSION) << std::endl;
+        logwriter << "# git version " << TO_STR(GIT_VERSION) << std::endl;
 #endif
         logwriter << std::scientific;
         logwriter << line << std::endl;
