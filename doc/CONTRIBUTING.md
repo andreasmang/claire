@@ -41,9 +41,9 @@ To contribute to the software:
 
 ## Testing and Benchmarks <a name="testing"></a>
 
-We have implemented several tests to check the accuracy of our numerical implementation. These are described in more detail in [doc/README-RUNME.md](https://github.com/andreasmang/claire/blob/gpu/doc/README-RUNME.md#testing-and-benchmarks-)
+We have implemented several tests to check the accuracy of our numerical implementation. These are described in more detail in [doc/README-RUNME.md](https://github.com/andreasmang/claire/blob/gpu/doc/README-RUNME.md#testing-and-benchmarks-).
 
 
 ## Coding Conventions <a name="conventions"></a>
 
-Our source code follows the [Google C++ Style Guide](https://google.github.io/styleguide/cppguide.html). Please adhere to these coding conventions if you would like to contribute to CLAIRE. Notice that all our routines use the error mechanism implemented in PETSc. We strongly encourage all contributers to include this mechanism to make debugging easier.
+Our source code follows the [Google C++ Style Guide](https://google.github.io/styleguide/cppguide.html). Please adhere to these coding conventions if you would like to contribute to CLAIRE. Notice that all our routines use the error mechanism implemented in PETSc. We strongly encourage all contributers to include this mechanism to make debugging easier. We have added `tags` to identify the major releases of our software (related mostly to publications for reproducability).
