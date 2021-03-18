@@ -42,7 +42,7 @@ endif
 
 ifeq ($(BUILD_TARGET), POWER9)
 	CXXFLAGS += -DREG_HAS_MPICUDA
-	CXXFLAGS += -DPOWER9
+	CXXFLAGS += -DPOWER9 -Wno-unused-function
 endif
 
 ifeq ($(BUILD_GPU), yes)
