@@ -69,7 +69,7 @@ else
 	CPU_FILES += $(SRC_DIR)/SemiLagrangian/SemiLagrangianGPUNew.cpp
 	CPU_FILES += $(SRC_DIR)/Spectral/mpicufft.cpp
 	# GPU build specific CUDA files
-	GPU_FILES += $(EXSRC_DIR)/interp3_gpu_new.cu
+	GPU_FILES += $(SRC_DIR)/Interpolation/interp3_gpu_new.cu
 	GPU_FILES += $(SRC_DIR)/Solver/TransportKernel.cu
 	GPU_FILES += $(SRC_DIR)/CLAIREUtilsKernel.cu
 	GPU_FILES += $(SRC_DIR)/DeformationFields/DeformationKernel.cu

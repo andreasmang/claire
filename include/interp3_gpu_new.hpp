@@ -49,19 +49,13 @@ extern "C" cudaTextureObject_t gpuInitEmptyTexture(IntType* nx);
 
 void interp0(float* m, float* q1, float *q2, float *q3, float *q, int nx[3]);
 
-void getMax(ScalarType* x, int nl, ScalarType* max);
-
 void normalizeQueryPoints(ScalarType* xq1, ScalarType* xq2, ScalarType* xq3, ScalarType* all_query_points, int nq, IntType* isize, IntType* nx, int* procid, int nghost);
-
-void printGPUVector(ScalarType* arr, int nq);
 
 void copyQueryValues(ScalarType* dst, ScalarType* src, int* index, int len);
 
 void enforcePeriodicity(ScalarType* xq, ScalarType* yq, ScalarType* zq, ScalarType* h, int len);
 
 void checkDomain(short* which_proc, ScalarType* xq, ScalarType* yq, ScalarType* zq, ScalarType* iX0, ScalarType* iX1, ScalarType* h, int len, int procid, int isize0, int isize1, int c_dim1);
-
-void printGPU3DVector(ScalarType* arr1, ScalarType* arr2, ScalarType* arr3, int nq);
 
 void initializeGrid(ScalarType* xq, ScalarType* yq, ScalarType* zq, ScalarType* f, ScalarType* ref, ScalarType* h, IntType* isize, IntType* istart, IntType* nx, int caseid);
 

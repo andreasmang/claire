@@ -1,46 +1,3 @@
-/*--------------------------------------------------------------------------*\
-Copyright (c) 2008-2010, Danny Ruijters. All rights reserved.
-http://www.dannyruijters.nl/cubicinterpolation/
-This file is part of CUDA Cubic B-Spline Interpolation (CI).
-
-Redistribution and use in source and binary forms, with or without
-modification, are permitted provided that the following conditions are met:
-*  Redistributions of source code must retain the above copyright
-   notice, this list of conditions and the following disclaimer.
-*  Redistributions in binary form must reproduce the above copyright
-   notice, this list of conditions and the following disclaimer in the
-   documentation and/or other materials provided with the distribution.
-*  Neither the name of the copyright holders nor the names of its
-   contributors may be used to endorse or promote products derived from
-   this software without specific prior written permission.
-
-THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
-AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
-IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
-ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE
-LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
-CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
-SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
-INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
-CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
-ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
-POSSIBILITY OF SUCH DAMAGE.
-
-The views and conclusions contained in the software and documentation are
-those of the authors and should not be interpreted as representing official
-policies, either expressed or implied.
-
-When using this code in a scientific project, please cite one or all of the
-following papers:
-*  Daniel Ruijters and Philippe Thévenaz,
-   GPU Prefilter for Accurate Cubic B-Spline Interpolation, 
-   The Computer Journal, vol. 55, no. 1, pp. 15-20, January 2012.
-   http://dannyruijters.nl/docs/cudaPrefilter3.pdf
-*  Daniel Ruijters, Bart M. ter Haar Romeny, and Paul Suetens,
-   Efficient GPU-Based Texture Interpolation using Uniform B-Splines,
-   Journal of Graphics Tools, vol. 13, no. 4, pp. 61-69, 2008.
-\*--------------------------------------------------------------------------*/
-
 #include <stdio.h>
 #include "petsc.h"
 #include "petscconf.h"
@@ -49,7 +6,8 @@ following papers:
 #include <chrono>
 #include <ctime> 
 #include <algorithm>
-#include <memcpy.cu>
+#include "cuda_helper_math.h"
+//#include <memcpy.cu>
 #include <bspline_kernel.cu>
 #include <lagrange_kernel.cu>
 #include "interp3_gpu_new.hpp"
@@ -57,8 +15,6 @@ following papers:
 #include "cuda_profiler_api.h"
 #include "zeitgeist.hpp"
 #include <math.h>
-#include <curand.h>
-#include <curand_kernel.h>
 
 
 #define PI ((double)3.14159265358979323846264338327950288419716939937510)
@@ -95,9 +51,7 @@ enum CUBIC_INTERP_TYPE {
 };
 
 
-template <typename T>
-__host__ __device__
-inline T rec3_fmaf(T a, T b, T c, T d, T e, T f) {
+template <typename T> __host__ __device__ inline T rec3_fmaf(T a, T b, T c, T d, T e, T f) {
     return fmaf(a, b, fmaf(c, d, e*f));
 }
 
@@ -122,29 +76,11 @@ void interp0(float* m, float* q1, float* q2, float* q3, float* q, int nx[3]) {
   interp0gpu<<<nl/256,256>>>(m,q1,q2,q3,q,n);
 }
 
-__global__ void printVectorKernel(ScalarType* m, int n) {
-    int i = blockDim.x * blockIdx.x + threadIdx.x;
-    if (i<n) printf("m[%d] = %f\n", i , m[i]);
-}
-
-__global__ void print3DVectorKernel(ScalarType* arr1, ScalarType* arr2, ScalarType* arr3, int n) {
-    int i = blockDim.x * blockIdx.x + threadIdx.x;
-    if (i<n) printf("m[%d] = %f\nm[%d] = %f\nm[%d] = %f\n", 3*i , arr1[i], 3*i+1, arr2[i], 3*i+2, arr3[i]);
-}
-
 /********************************************************************
  * @brief device function for computing the linear index from given 3D indices
  *******************************************************************/
 __device__ inline int getLinearIdx(int i, int j, int k, int3 nl) {
     return i*nl.y*nl.z + j*nl.z + k;
-}
-
-/********************************************************************
- * @brief function to add 1 to a an array
- *******************************************************************/
-__global__ void load_store(float* f1, float* f2) {
-    int i = threadIdx.x + blockIdx.x * blockDim.x;
-    f2[i] = f1[i] + 1;
 }
 
 /********************************************************************
@@ -611,58 +547,6 @@ __global__ void cubicTex3DFastLagrange(cudaTextureObject_t tex,
 }
 
 /********************************************************************
- * Fixed departure point
- * @brief device function to do the interpolation of a single point using the Vanilla Lagrange Method
- * @parm[in] tex input data texture used for interpolation
- * @parm[in] coord_grid query coordinate
- * @parm[in] inv_reg_extent inverse of the dimension of the 3D grid (1/nx, 1/ny, 1/nz)
- * @parm[out] interpolated value
- *******************************************************************/
-__global__ void fixedpointLagrange(PetscScalar* f, 
-                                   const PetscScalar** xq, 
-                                   PetscScalar* fq, 
-                                   const float3 inv_ext, int3 nl) {
-  const int tid = blockDim.x * blockIdx.x + threadIdx.x;
-  float3 qcoord;
-  getCoordinates(&qcoord.z, &qcoord.y, &qcoord.x, xq, tid);
-	__shared__ float fs[64];
-	const float3 index = floor(qcoord);
-	const float3 fraction = qcoord - index;
-	float3 w0, w1, w2, w3;
-	lagrange_weights(fraction, w0, w1, w2, w3);
-    
-    float wx[KERNEL_DIM] = {w0.x, w1.x, w2.x, w3.x};
-    float wy[KERNEL_DIM] = {w0.y, w1.y, w2.y, w3.y};
-    float wz[KERNEL_DIM] = {w0.z, w1.z, w2.z, w3.z};
-    
-    if (threadIdx.x == 0) {
-        PetscScalar *fp = &f[9 + nl.z*9 + nl.y*nl.z*9];
-    // indices for the source points to be loaded in Shared Memory
-        for (int k=0; k<KERNEL_DIM; k++) 
-            for (int j=0; j<KERNEL_DIM; j++) 
-                for (int i=0; i<KERNEL_DIM; i++) 
-                    fs[k + j*4 + i*16] = fp[k + j*4 + i*16];
-    }
-
-    __syncthreads();
-    
-    float sk,sj,temp=0;
-    // computation begins
-    for (int k=0; k<KERNEL_DIM; k++) {
-        sk = 0;
-        for (int j=0; j<KERNEL_DIM; j++)  {
-           sj = wx[0]*fs[k + j*4 + 0] +
-                wx[1]*fs[k + j*4 + 1*16] + 
-                wx[2]*fs[k + j*4 + 2*16] + 
-                wx[3]*fs[k + j*4 + 3*16];
-           sk = fmaf(wy[j], sj, sk);
-        }
-        temp = fmaf(wz[k], sk, temp);
-    }
-   fq[tid] = temp; 
-}
-
-/********************************************************************
  * @brief device function to do the interpolation of a single point using the Vanilla Lagrange Method
  * @parm[in] tex input data texture used for interpolation
  * @parm[in] coord_grid query coordinate
@@ -978,56 +862,6 @@ void CubicBSplinePrefilter3D_fast(float *m, int* nx, float *mtemp1, float *mtemp
     cudaCheckKernelError();
 }
 
-
-
-
-/********************************************************************
- * @brief function to create a 3D texture from the given cuda Pitched Pointer denoting volume (3D) data
- *******************************************************************/
-extern "C" cudaTextureObject_t initTextureFromVolume(cudaPitchedPtr volume, cudaExtent extent) {
-   cudaError_t err = cudaSuccess;
-   cudaChannelFormatDesc channelDesc = cudaCreateChannelDesc<float>();
-   cudaArray* cuArray;
-   err = cudaMalloc3DArray(&cuArray, &channelDesc, extent, 0);
-   if (err != cudaSuccess){
-        fprintf(stderr, "Failed to allocate 3D cudaArray (error code %s)!\n", cudaGetErrorString(err));
-        exit(EXIT_FAILURE);
-   }
-   
-   cudaMemcpy3DParms p = {0};
-   p.srcPtr = volume;
-   p.dstArray = cuArray;
-   p.extent = extent;
-   p.kind = cudaMemcpyDeviceToDevice;
-   err = cudaMemcpy3D(&p);
-   if (err != cudaSuccess){
-        fprintf(stderr, "Failed to copy 3D memory to cudaArray (error code %s)!\n", cudaGetErrorString(err));
-        exit(EXIT_FAILURE);
-   }
-    /* create cuda resource description */
-    struct cudaResourceDesc resDesc;
-    memset( &resDesc, 0, sizeof(resDesc));
-    resDesc.resType = cudaResourceTypeArray;
-    resDesc.res.array.array = cuArray;
-
-    struct cudaTextureDesc texDesc;
-    memset(&texDesc, 0, sizeof(texDesc));
-    texDesc.addressMode[0] = cudaAddressModeWrap;
-    texDesc.addressMode[1] = cudaAddressModeWrap;
-    texDesc.addressMode[2] = cudaAddressModeWrap;
-    texDesc.readMode = cudaReadModeElementType;
-    texDesc.filterMode = cudaFilterModeLinear;
-    texDesc.normalizedCoords = 1;
-
-    cudaTextureObject_t texObj = 0;
-    err = cudaCreateTextureObject( &texObj, &resDesc, &texDesc, NULL);
-    if (err != cudaSuccess){
-        fprintf(stderr, "Failed to create texture (error code %s)!\n", cudaGetErrorString(err));
-        exit(EXIT_FAILURE);
-    }
-    return texObj;
-}
-
 /********************************************************************
  * @brief create texture object with empty data (cudaArray)
  *******************************************************************/
@@ -1336,14 +1170,6 @@ void gpuInterpVec3D(
     
     cudaDeviceSynchronize();
 }
-
-/*void getMax(ScalarType* x, int nl, ScalarType* max) {
-    thrust::device_ptr<ScalarType> x_thrust;
-    x_thrust = thrust::device_pointer_cast (x);
-    // find the max itr
-    thrust::device_vector<ScalarType>::iterator it = thrust::max_element(x_thrust, x_thrust + nl);
-    *max = *it;
-}*/
     
 __global__ void normalizeQueryPointsKernel(ScalarType* xq1, ScalarType* xq2, ScalarType* xq3, ScalarType* all_query_points, int nq, const float3 ng, const float3 offset) {
 
@@ -1374,19 +1200,6 @@ void normalizeQueryPoints(ScalarType* xq1, ScalarType* xq2, ScalarType* xq3, Sca
     int blocks = (nq+threads-1)/threads;
     normalizeQueryPointsKernel<<<blocks,threads>>>(xq1, xq2, xq3, all_query_points, nq, ng, offset);
     cudaDeviceSynchronize();
-}
-
-void printGPUVector(ScalarType* arr, int nq) {
-    int threads = 256;
-    int blocks = (nq+threads-1)/threads;
-    printVectorKernel<<<blocks, threads>>>(arr, nq);
-}
-
-
-void printGPU3DVector(ScalarType* arr1, ScalarType* arr2, ScalarType* arr3, int nq) {
-    int threads = 256;
-    int blocks = (nq+255)/threads;
-    print3DVectorKernel<<<blocks, threads>>>(arr1, arr2, arr3, nq);
 }
 
 
@@ -1494,20 +1307,6 @@ __host__ __device__
 void TestFunction(ScalarType *val, const ScalarType x, const ScalarType y, const ScalarType z, int caseid) {
       *val = (caseid+1)*( sinf(8*x)*sinf(8*x) + sinf(2*y)*sinf(2*y) + sinf(4*z)*sinf(4*z) )/3.0;
       //*val = x;
-}
-
-__global__ void setup_kernel(curandState *state, const int3 size, const int3 start, const int3 n) {
-
-    int ix = threadIdx.x + blockDim.x * blockIdx.x;
-    int iy = threadIdx.y + blockDim.y * blockIdx.y;
-    int iz = threadIdx.z + blockDim.z * blockIdx.z;
-    
-
-    int idx = ix*size.y*size.z + iy*size.z + iz; // global index local to GPU
-    if (idx < size.x*size.y*size.z) {
-      int i = ( (ix+start.x) * n.y * n.z ) + ( (iy+start.y) * n.z ) + iz+start.z; // global index to the grid
-      curand_init(1234, i*3, 0, &state[idx]);
-    }
 }
 
 __global__ void initializeGridKernel(ScalarType* xq, ScalarType* yq, ScalarType* zq, ScalarType* f, ScalarType* ref, const float3 h, const int3 size, const int3 start, const int3 n, int caseid) {
