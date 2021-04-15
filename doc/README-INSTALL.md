@@ -268,4 +268,4 @@ make BUILD_TARGET=POWER9 GPU_VERSION=70
 * Kepler GPUs work with PETSc 3.12.4  (others not tested)
 * Compiling PETSc with CUDA support on cluster login nodes without GPUs might fail
 * PNETCDF is currently not tested for GPUs
-
+* The GPU version of CLAIRE can currently only be compiled in single precision. This limits the selection of regularization operators to H1-type regularization only. There are issues with the numerical accuracy of H2- and H3-type regularization operators for single precision. Applying these operators requires a compilation in double precision (available on the GPU branch) 
