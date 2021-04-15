@@ -17,16 +17,6 @@ if [[ ! -e fftw.tar.gz ]]; then
 	wget http://www.fftw.org/fftw-3.3.6-pl2.tar.gz -O fftw.tar.gz 
 fi
 
-if [[ ! -e morton.tar.gz ]]; then
-	echo ""
-	echo "----------------------------------------------------------------------------------"
-	echo "downloading morton library"
-	echo "----------------------------------------------------------------------------------"
-#	wget http://users.ices.utexas.edu/~andreas/libs/morton.tar.gz
-#	wget http://math.uh.edu/~andreas/libs/morton.tar.gz
-	wget https://www.math.uh.edu/~andreas/resources/clairelibs/morton.tar.gz
-fi
-
 if [[ ! -e nifticlib-2.0.0.tar.gz ]]; then
 	echo ""
 	echo "----------------------------------------------------------------------------------"

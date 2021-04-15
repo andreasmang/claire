@@ -481,20 +481,6 @@ echo "export LD_LIBRARY_PATH=${BLD_DIR}/${PETSC_ARCH}/lib:\${LD_LIBRARY_PATH}" >
 ################################
 M_LIB_DIR=${BUILD_DIR}/libmorton
 SRC_DIR=${M_LIB_DIR}
-if [ ! ${cleanup} -eq 1 ]; then
-	if [ ! -d ${M_LIB_DIR} -o ! -d ${SRC_DIR} ]; then
-		mkdir -p ${SRC_DIR}
-		echo ""
-		echo ${myline} 
-		echo extracting morton library...
-		echo ${myline} 
-		tar -xzf ${LIB_DIR}/morton.tar.gz -C ${SRC_DIR} --strip-components=1
-	fi
-else
-	if [  ${cleanup} -eq 1 -a ! ${M_LIB_DIR} == ${HOME} ]; then
-		rm -rf ${M_LIB_DIR}
-	fi
-fi
 echo "export MORTON_DIR=${SRC_DIR}" >> ${BUILD_DIR}/environment_vars.sh
 
 
