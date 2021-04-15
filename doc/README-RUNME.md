@@ -90,6 +90,8 @@ mpirun -np 20 $bindir/claire -mr $datdir/brain01.nii.gz \
 
 Running `claire` on real image data is explained in [example 3](#clairexmp3). We use a method based on parameter continuation to identify an adequate regularization parameter. The search uses the determinant of the deformation gradient as a "metric". The user can define a lower bound for the Jacobian via the `-jbound <dbl>` option (the upper bound is `1/<dbl>`). To perform the search specify the `-train <type>` option. There are two strategies implemented: A simple reduction of the regularization parameter until the bound is hit (use `-train reduce`) and a binary search (use `-train binary`). The line break (backslash `\`) is only added for readability.
 
+Notice that if you compile CLAIRE in single precision only H1-type regularization operators function properly (there are numerical accuracy issues for H2- and H3-type regularization operators in single precision). To use higher order regularization operators, CLAIRE needs to be compiled in double precision (slower).
+
 
 ### Example 05: Parameter Continuation <a name="clairexmp5"></a>
 
