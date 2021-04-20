@@ -33,6 +33,7 @@ In addition to that we have added two binaries named `test` and `benchmark` for 
 
 These binaries can be found in the `bin` folder after CLAIRE has been built successfully. To learn more about building claire take a look at our [installation guide](README-INSTALL.md) found in [doc/README-INSTALL.md](README-INSTALL.md).
 
+If you are trying to execute CLAIRE on a dedicated HPC system (multi-GPU / multi-CPU envoriment) take a look at the examples provided in the [Job Submission on Dedicated Systems](#hpc) section.
 
 ## Get Help <a name="clairehelp"></a>
 
