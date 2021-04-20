@@ -247,11 +247,11 @@ Additional examples for executing CLAIRE are described in [doc/README-RUNME.md](
 More information about TACC's Longhorn system can be found at [https://www.tacc.utexas.edu/systems/longhorn](https://www.tacc.utexas.edu/systems/longhorn).
 
 Modules loaded:
-`
+```bash
 1) xl/16.1.1             4) autotools/1.2   7) TACC
 2) spectrum_mpi/10.3.0   5) cmake/3.16.1    8) cuda/10.2 (g)
 3) git/2.24.1            6) xalt/2.10.2
-`
+```
 
 Compilation of CLAIRE and its dependencies:
 
