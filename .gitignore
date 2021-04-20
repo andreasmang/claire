@@ -24,7 +24,6 @@ environment_vars.sh
 scripts/
 bingpu/
 *.nvprof
-*.slurm
 compile
 run
 lib/
