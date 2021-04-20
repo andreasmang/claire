@@ -244,6 +244,8 @@ Additional examples for executing CLAIRE are described in [doc/README-RUNME.md](
 
 ### TACC's Longhorn System (03/17/21)
 
+More information about TACC's Longhorn system can be found at [https://www.tacc.utexas.edu/systems/longhorn](https://www.tacc.utexas.edu/systems/longhorn).
+
 Modules loaded:
 `
 1) xl/16.1.1             4) autotools/1.2   7) TACC
@@ -259,6 +261,8 @@ make WITH_BATCH=yes
 source deps/env_source.sh
 make BUILD_TARGET=POWER9 GPU_VERSION=70
 ```
+
+A job submission file for TACC's Longhorn system (for multi-GPU exection) can be found in [doc/examples/longhorn_mgpu.slurm](examples/longhorn_mgpu.slurm).
 
 
 ## Troubleshooting / Known Issues <a name="faq"></a>

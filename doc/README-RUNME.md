@@ -16,6 +16,7 @@ Go back to [README.md](../README.md).
 * [Simple Examples: `clairetools`](#toolsxmp)
 	* [Transporting Images](#toolsxmp1)
 	* [Computing Jacobians](#toolsxmp2)
+* [Job Submission on Dedicated Systems](#hpc)
 * [Testing and Benchmarks](#testing)
 
 
@@ -62,10 +63,10 @@ $BINDIR/claire -synthetic 0
 
 ### Example 02: Synthetic Problem (Parallel Execution) <a name="clairexmp2"></a>
 
-In [runclaire02.sh](examples/runclaire02.sh) we execute CLAIRE for a synthetic test problem of size 128x128x128 in parallel. We use 20 MPI tasks. We use default settings for our solver:
+In [runclaire02.sh](examples/runclaire02.sh) we execute CLAIRE for a synthetic test problem of size 128x128x128 in parallel. As an example, we use 20 MPI tasks. We use default settings for our solver:
 
 ```bash
-$BINDIR/claire -synthetic 0 -nx 128
+mpirun -n 20 $BINDIR/claire -synthetic 0 -nx 128
 ```
 
 The options used with `claire` are explained in [example 1](#clairexmp1). The key difference is the instruction `mpirun -np 20` infront of the executable. This instructs your compute node to use 20 MPI tasks. CLAIRE will determine the processor layout for you. We recommend executing CLAIRE in parallel. If you use `mpiexec` replace `mpirun -np 20` with `mpiexec -n 20`.
@@ -157,6 +158,15 @@ $BINDIR/clairetools -v1 velocity-field-x1.nii.gz       \
                     -x ./ -detdefgrad
 ```
 
+
+## Job Submission on Dedicated Systems <a name="hpc"></a>
+
+
+### TACC's Longhorn System
+
+More information about TACC's Longhorn system can be found at [https://www.tacc.utexas.edu/systems/longhorn](https://www.tacc.utexas.edu/systems/longhorn).
+
+* multi-GPU (2 GPUs one node): [doc/examples/longhorn_mgpu.slurm](examples/longhorn_mgpu.slurm)
 
 
 ## Testing and Benchmarks <a name="testing"></a>
