@@ -160,6 +160,18 @@ $BINDIR/clairetools -v1 velocity-field-x1.nii.gz       \
 ```
 
 
+### Example 03: Converting Data <a name="toolsxmp3"></a>
+
+In [runtools03.sh](https://github.com/andreasmang/claire/tree/gpu/doc/examples/runtools03.sh) we show how to convert data from `*.nii.gz` to `*.nc`.
+
+```bash
+$BINDIR/clairetools -ifile $datdir/brain01.nii.gz      \
+                    -convert 2nc
+```
+
+The output file will be located in the same folder as the input file, with the same filename (for example, `$datdir/brain01.nii.gz` becomes `$datdir/brain01.nc`).
+
+
 ## Job Submission on Dedicated Systems <a name="hpc"></a>
 
 
