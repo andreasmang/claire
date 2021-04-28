@@ -16,6 +16,7 @@ Go back to [README.md](../README.md).
 * [Simple Examples: `clairetools`](#toolsxmp)
 	* [Transporting Images](#toolsxmp1)
 	* [Computing Jacobians](#toolsxmp2)
+	* [Converting Data](#toolsxmp3)
 * [Job Submission on Dedicated Systems](#hpc)
 * [Testing and Benchmarks](#testing)
 
