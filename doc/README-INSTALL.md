@@ -101,7 +101,7 @@ The minimal requirements for compiling CLAIRE on your system are:
 * MPI (Open MPI; MVAPICH; Intel MPI; ...; required by [PETSc](https://www.mcs.anl.gov/petsc), and CLAIRE)
 * cmake (see [https://cmake.org](https://cmake.org); required by niftilib)
 * python (see [https://www.python.org](https://www.python.org); required by [PETSc](https://www.mcs.anl.gov/petsc) and the optional pyclaire bindings)
-* zlib (see [https://www.zlib.net/](https://www.zlib.net); required by niftilib)
+* zlib (see [https://www.zlib.net](https://www.zlib.net); required by niftilib)
 * CUDA-API
 
 Make sure that the standard *wrappers* for `mpicc`, `mpicxx`, and `nvcc` are available on your system (either by loading the appropriate modules and/or by setting up the appropriate `PATH` and `LD_LIBRARY_PATH` definitions). The compilation has been tested with Open MPI, MVAPICH, and Intel MPI.
@@ -117,7 +117,7 @@ The compiler needs `C++11` support. The GPU version of CLAIRE requires the follo
 
 * MPI (with GPU support (CUDA-aware MPI) for multi-GPU multi-node)
 * PETSc with CUDA support (see [https://www.mcs.anl.gov/petsc](https://www.mcs.anl.gov/petsc))
-* niftilib (see [https://sourceforge.net/projects/niftilib/files/nifticlib/](https://sourceforge.net/projects/niftilib/files/nifticlib))
+* niftilib (see [https://sourceforge.net/projects/niftilib/files/nifticlib](https://sourceforge.net/projects/niftilib/files/nifticlib))
 * zlib (see [http://zlib.net](http://zlib.net))
 
 We provide functionality to build PETSc, niftilib, and zlip on your system (see next section).
