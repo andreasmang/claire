@@ -262,7 +262,17 @@ source deps/env_source.sh
 make BUILD_TARGET=POWER9 GPU_VERSION=70
 ```
 
+To test if the compilation worked check if the binaries are available in the `bin` folder. To execute CLAIRE using an interactive job do
+
+```bash
+cd bin
+idev -N1 # launch an interactive session with one node
+ibrun ./claire -help
+ibrun ./claire -synthetic 0 -nx 128
+```
+
 A job submission file for TACC's Longhorn system (for multi-GPU exection) can be found in [doc/examples/longhorn_mgpu.slurm](examples/longhorn_mgpu.slurm).
+
 
 
 ## Troubleshooting / Known Issues <a name="faq"></a>
