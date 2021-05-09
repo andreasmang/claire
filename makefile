@@ -1,11 +1,11 @@
-CXX=mpicxx
-USEINTEL=no
-USEINTELMPI=no
-USESINGLE=no
-USEPNETCDF=yes
-USENIFTI=yes
-USEHASWELL=no
-BUILDTOOLS=yes
+CXX=mpicxx            # select the MPI compiler on your system
+USEINTEL=no           # enable if you want plan on using intel compilers
+USEINTELMPI=no        # enable if you plan on using INTEL MPI
+USESINGLE=yes         # compile CLAIRE in single precision (needs PETSC in single precision)
+USEPNETCDF=no         # use PNETCDF as data format (do not forget to build the dependency)
+USENIFTI=yes          # use NIFTI as data format; this is the default for IO and should always be enabled
+USEHASWELL=no         # build CLAIRE for a HASWELL architecture
+BUILDTOOLS=yes        # build the `clairetools` binary
 
 include config/setup.mk
 include config/files.mk

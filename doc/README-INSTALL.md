@@ -56,17 +56,19 @@ Make sure that the standard *wrappers* for `mpicc` and `mpicxx` are available on
 ### Dependencies <a name="dependencies"></a>
 
 CLAIRE requires the following libraries to be installed on your system:
-* `FFTW` [http://www.fftw.org](http://www.fftw.org)
+* `FFTW` [http://www.fftw.org](http://www.fftw.org) [ *required* ]
 	* file: [fftw-3.3.6-pl2.tar.gz](http://www.fftw.org/fftw-3.3.6-pl2.tar.gz)
 	* description: library for computing FFTs
 	* additional details can be found at [http://www.fftw.org](http://www.fftw.org)
-* `AccFFT` [http://accfft.org](http://accfft.org)
+	* individual compilation: `./build_libs.sh --bfftw`
+* `AccFFT` [http://accfft.org](http://accfft.org) [ *required* ]
 	* file: accfft.tar.gz
 	* source code also available on gitub: [https://github.com/amirgholami/accfft](https://github.com/amirgholami/accfft)
 	* description: library to compute FFT in parallel (requires FFTW)
 	* additional details can be found at [http://www.accfft.org](http://www.accfft.org)
 	* requires `FFTW` to be installed
-* `PETSc` [https://www.mcs.anl.gov/petsc/](https://www.mcs.anl.gov/petsc/) (requires `python 2.7`)
+	* individual compilation: `./build_libs.sh --baccft`
+* `PETSc` [https://www.mcs.anl.gov/petsc/](https://www.mcs.anl.gov/petsc/) (requires `python 2.7`) [ *required* ]
 	* file: [petsc-lite-3.9.1.tar.gz](http://ftp.mcs.anl.gov/pub/petsc/release-snapshots/petsc-lite-3.9.1.tar.gz)
 	* source code also available on bitbucket: [https://bitbucket.org/petsc/petsc](https://bitbucket.org/petsc/petsc)
 	* description: library for numerics, linear algebra, and optimization
@@ -74,14 +76,28 @@ CLAIRE requires the following libraries to be installed on your system:
 		* [petsc-lite-3.8.3.tar.gz](http://ftp.mcs.anl.gov/pub/petsc/release-snapshots/petsc-lite-3.8.3.tar.gz)
 		* [petsc-lite-3.7.6.tar.gz](http://ftp.mcs.anl.gov/pub/petsc/release-snapshots/petsc-lite-3.7.6.tar.gz)
 		* [petsc-lite-3.7.0.tar.gz](http://ftp.mcs.anl.gov/pub/petsc/release-snapshots/petsc-lite-3.7.0.tar.gz)
-* `niftilib` [https://sourceforge.net/projects/niftilib/files/nifticlib/](https://sourceforge.net/projects/niftilib/files/nifticlib/)
+	* individual compilation:
+		* for single precision: `./build_libs.sh --bpetscsgl` (precision is inherited by CLAIRE)
+		* for double precision: `./build_libs.sh --bpetscdbl` (precision is inherited by CLAIRE)
+		* for single precision (debug): `build_libs.sh --bpetscdbgsgl` (precision is inherited by CLAIRE)
+		* for double precision (debug): `build_libs.sh --bpetscdbgdbl` (precision is inherited by CLAIRE)
+* `niftilib` [https://sourceforge.net/projects/niftilib/files/nifticlib/](https://sourceforge.net/projects/niftilib/files/nifticlib) [ *required* ]
 	* file: [nifticlib-2.0.0.tar.gz](https://sourceforge.net/projects/niftilib/files/nifticlib/nifticlib_2_0_0)
 	* description: library to read and write NIFTI images
 	* see [NIFTICLIB](https://sourceforge.net/projects/niftilib/files/nifticlib/)
-* `zlib` [http://zlib.net](http://zlib.net)
-* `libmorton` [https://github.com/Forceflow/libmorton](https://github.com/Forceflow/libmorton)
+	* individual compilation: `./build_libs.sh --bnifti`
+	* a description of the data formats supported by CLAIRE visit the [README-RUNME.md](README-RUNME.md)
+* `zlib` [http://zlib.net](http://zlib.net) [ *required* ]
+	* description: required for compression of NIFTI files (`*.nii.gz`; compiled with `niftilib`) 
+* `pnetcdf` [http://cucis.ece.northwestern.edu/projects/PnetCDF](http://cucis.ece.northwestern.edu/projects/PnetCDF) [ *optional* ]
+	* description: library to read and write netcdf (`*.nc`) files (allows for parallel IO; recommended for large-scale runs)
+	* file: [parallel-netcdf-1.8.1.tar.gz](http://cucis.ece.northwestern.edu/projects/PnetCDF/Release/parallel-netcdf-1.8.1.tar.gz)
+	* individual compilation: `./build_libs.sh --bpnetcdf`
+	* a description of the data formats supported by CLAIRE visit the [README-RUNME.md](README-RUNME.md)
+
 
 #### Step 1: Downloading Dependencies
+
 To download the libraries we provide a script called `get_libs.sh` (see [deps/get_libs.sh](../deps/get_libs.sh)). Simply run this script in your command window to download *tarball* files of the libraries identified above.
 
 ```bash
@@ -114,7 +130,7 @@ The libraries can be compiled by running the [build_libs.sh](https://github.com/
 ./build_libs.sh --help
 ```
 
-This will provide information on what parameters you can parse. Ideally, it is sufficient to do `./build_libs.sh --build`. You can also build the individual libraries one after another, via the `--bLIBNAME` option, where `LIBNAME` is the name of the library. For precise instructions, do `./build_libs.sh --help`. If you want to clean up the libraries folder, you can do `./build_libs.sh --clean`. The *build* folders will be removed each time you recompile the libraries.
+This will provide information on what parameters you can parse. Ideally, it is sufficient to do `./build_libs.sh --build`. You can also build the individual libraries one after another, via the `--bLIBNAME` option, where `LIBNAME` is the name of the library. For precise instructions, do `./build_libs.sh --help`. If you want to clean up the libraries folder, you can do `./build_libs.sh --clean`. The *build* folders will be removed each time you recompile the libraries. We provide the commands to compile the individual libraries also in the description of the [dependencies](#dependencies) above.
 
 Please check the `cmake`, `make` and `automake` outputs for errors. To check if everything worked you can also take a look at the "build" subdirectories of the individual libraries in the "lib" folder (subdirectories of [deps](../deps)). See if folders in "build" were created and the library and include files exist. If not, something went wrong during the build.
 
@@ -132,11 +148,13 @@ To add them permanently, copy the content of `environment_vars.sh` to your `~/.b
 
 Before you can build CLAIRE you need to
 
-* Make sure that you have installed all *dependencies*.
-* Check the [makefile](https://github.com/andreasmang/claire/tree/master/makefile) before building the code:
+* Make sure that you have installed all *dependencies* (see [dependencies](#dependencies) section above).
+* Check the [makefile](https://github.com/andreasmang/claire/blob/cpu/makefile) before building the code:
 	* If you use an *intel compiler* set the `USEINTEL` flag to `yes`.
 	* If you use a *GNU compiler* set the `USEINTEL` flag to `no`.
 	* If you use *Intel MPI* (impi) set the `USEINTELMPI` flag to `yes` (if not, set it to `no`).
+	* If you want to use PNETCDF instead of NIFTI as format set `USEPNETCDF=yes` (default: `USEPNETCDF=no`). Notice that the `netcdf` dependency needs to be compiled (see [dependencies](#dependencies) above).
+	* If you want to compile `clairetools` (mostly relevant for postprocessing) select `BUILDTOOLS=yes` 
 * Make sure all paths needed in the makefile are available on your system (to check, you can do `env` in your bash). to add the paths temporarily `source external/libs/environment_vars.sh` or add the content of `external/libs/environment_vars.sh` to your `~/.bashrc`.
 
 To build the code using the `make` system do (in the top level directory):
@@ -146,6 +164,8 @@ make -j
 ```
 
 If you build in parallel using `make -j`, on certain systems to many threads will be used. This will result in compilation errors. To fix this, run `make -j 12` instead (for quick access, you may want to define an alias in your `~/.bashrc`).
+
+
 
 
 ## Instructions for Specific Systems <a name="systems"></a>
