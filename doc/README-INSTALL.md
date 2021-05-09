@@ -187,12 +187,16 @@ module load cmake/2.8.12.2
 ```
 
 
+### Opuntia System (RCDC)
 
-### Stampede (TACC)
+Info about Maverick can be found here: [https://www.uh.edu/rcdc/resources/hpc/opuntia](https://www.uh.edu/rcdc/resources/hpc/opuntia).
+
+CLAIRE has been tested with the following module settings (04/16/2021):
 
 ```bash
-module load intel/14.0.1.106
-module load impi/5.0.3 
+module load intel
+module load matlab
+module load OpenMPI/intel/3.1.2
 ```
 
 
