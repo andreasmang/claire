@@ -35,14 +35,15 @@ if [[ ! -e parallel-netcdf.tar.gz ]]; then
 fi
 
 #if [[ ! -e petsc.tar.gz ]]; then
-if [[ ! -e petsc-lite-3.9.1.tar.gz ]]; then
+if [[ ! -e petsc-lite-3.11.4.tar.gz ]]; then
 	echo ""
 	echo "----------------------------------------------------------------------------------"
 	echo "downloading petsc library"
 	echo "----------------------------------------------------------------------------------"
 #	wget http://ftp.mcs.anl.gov/pub/petsc/release-snapshots/petsc-lite-3.7.6.tar.gz -O petsc.tar.gz
 #	wget http://ftp.mcs.anl.gov/pub/petsc/release-snapshots/petsc-lite-3.7.6.tar.gz
-	wget http://ftp.mcs.anl.gov/pub/petsc/release-snapshots/petsc-lite-3.9.1.tar.gz
+#   wget http://ftp.mcs.anl.gov/pub/petsc/release-snapshots/petsc-lite-3.11.4.tar.gz # does not work for OpenMPI 4.0.3
+	wget http://ftp.mcs.anl.gov/pub/petsc/release-snapshots/petsc-lite-3.11.4.tar.gz
 fi
 
 if [[ ! -e zlib.tar.gz ]]; then
