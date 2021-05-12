@@ -233,3 +233,4 @@ module load OpenMPI/intel/3.1.2
 	* `ssl` library (required by PETSc)
 	* BLAS (required by PETSc; we install it along with PETSc; http://www.netlib.org/blas/)
 	* LAPACK (required by PETSc; we install it along with PETSc; http://www.netlib.org/lapack/)
+8. There are compilation issues with `avx` instructions using GCC 9.3.0 (compiles with GCC 7; see https://github.com/andreasmang/claire/issues/10)
