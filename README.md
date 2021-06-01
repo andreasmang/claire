@@ -1,8 +1,8 @@
 # CLAIRE
 
 [![status](https://img.shields.io/badge/arXiv-1808.04487-red)](https://arxiv.org/abs/1808.04487)
-[![status](https://img.shields.io/badge/licencse-GPL-blue)](https://github.com/andreasmang/claire/tree/master/LICENSE)
 [![status](https://joss.theoj.org/papers/d4af0a15946fd2161935be018820243b/status.svg)](https://joss.theoj.org/papers/d4af0a15946fd2161935be018820243b)
+[![status](https://img.shields.io/badge/licencse-GPL-blue)](https://github.com/andreasmang/claire/tree/master/LICENSE)
 
 
 * Are you looking for **examples**? Check the [doc/examples](https://github.com/andreasmang/claire/tree/master/doc/examples) folder.
