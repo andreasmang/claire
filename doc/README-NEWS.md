@@ -1,6 +1,7 @@
 # CLAIRE: News Feed
 
 Go back to [README.md](../README.md).
+* 05/2021 Our JOSS contribution has been accepted for publication. The reference can be found [here](doc/README-REFERENCES.md).
 * 03/2021 We have added contributing guidlines: [doc/CONTRIBUTING.md](CONTRIBUTING.md)
 * 03/2021 The `cpu` branch has become the default branch of the repository.
 * 03/2021 We have renamed the `master` branch to `cpu` (the legacy CPU implementation of CLAIRE)
