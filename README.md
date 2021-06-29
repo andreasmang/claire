@@ -18,8 +18,11 @@
 
 The links above point to individual `markdown` files. These files can be found in the [doc](https://github.com/andreasmang/claire/tree/master/doc) subfolder. Basic examples for how to execute CLAIRE can be found in the [doc/examples](https://github.com/andreasmang/claire/tree/master/doc/examples) folder. The NIREP dataset used to test CLAIRE can be downloaded [here](https://github.com/andreasmang/nirep).
 
+
 ## About <a name="claireabout"></a>
 **CLAIRE** stands for *Constrained Large Deformation Diffeomorphic Image Registration*. It is a C/C++ software package for velocity-based diffeomorphic image registration in three dimensions. Its performance is optimized for multi-core CPU systems (`cpu` branch) and multi-node, multi-GPU architectures (`gpu` branch; default). The CPU version uses MPI for data parallelism, and has been demonstrated to scale on several supercomputing platforms. CLAIRE can be executed on large-scale state-of-the-art computing systems as well as on local compute systems with limited resources.
+
+Notice that the CPU version is accurate and running but new features are currently only being added to the GPU version. The GPU code is a major revision and therefore considered the default and recommended for use.
 
 <p align="center">
 <img src="doc/figs/claire4brains.jpg" alt="CLAIRE4Brains"  width="800"/>
